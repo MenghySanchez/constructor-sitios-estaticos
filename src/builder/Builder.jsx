@@ -22,6 +22,12 @@ const adminViews = [
 ];
 
 const parentBlockTypes = new Set(["section", "container", "innerSection"]);
+const viewportPresets = {
+  desktop: { label: "Computadora", width: 1200 },
+  laptop: { label: "Laptop", width: 1024 },
+  mobile: { label: "Mobile", width: 390 },
+  custom: { label: "Custom", width: 768 },
+};
 
 function findBlockById(blocks, blockId) {
   for (const block of blocks) {
@@ -33,16 +39,43 @@ function findBlockById(blocks, blockId) {
   return null;
 }
 
+function findBlockContext(blocks, blockId, parent = null) {
+  for (const block of blocks) {
+    if (block.id === blockId) return { block, parent };
+    const childContext = findBlockContext(block.children || [], blockId, block);
+    if (childContext) return childContext;
+  }
+
+  return null;
+}
+
+function getColumnCount(block) {
+  if (!parentBlockTypes.has(block?.type)) return 0;
+  const columns = Number.parseInt(block.props?.columns || "1", 10);
+  return Math.max(1, Number.isFinite(columns) ? columns : 1);
+}
+
+function clampColumn(column, columnCount) {
+  const parsed = Number.parseInt(column, 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(Math.max(parsed, 0), Math.max(columnCount - 1, 0));
+}
+
+function groupBlocksByColumn(blocks, columnCount) {
+  return Array.from({ length: columnCount }, (_, index) => blocks.filter((block) => clampColumn(block.column || 0, columnCount) === index));
+}
+
 function mapBlocks(blocks, mapper) {
   return blocks.map((block) => mapper({ ...block, children: mapBlocks(block.children || [], mapper) }));
 }
 
-function addBlockToParent(blocks, parentId, blockToAdd) {
-  if (!parentId) return [...blocks, blockToAdd];
+function addBlockToParent(blocks, parentId, blockToAdd, column = 0) {
+  if (!parentId) return [...blocks, { ...blockToAdd, column: 0 }];
 
   return mapBlocks(blocks, (block) => {
     if (block.id !== parentId) return block;
-    return { ...block, children: [...(block.children || []), blockToAdd] };
+    const targetColumn = clampColumn(column, getColumnCount(block));
+    return { ...block, children: [...(block.children || []), { ...blockToAdd, column: targetColumn }] };
   });
 }
 
@@ -99,8 +132,8 @@ function StructureBranch({ blocks, selectedBlockId, onSelectBlock }) {
     <ol className="cms-structure-list">
       {blocks.map((block) => {
         const children = block.children || [];
-        const isInnerSection = block.type === "innerSection";
-        const columnCount = isInnerSection ? Number.parseInt(block.props?.columns || "2", 10) || 2 : 0;
+        const columnCount = getColumnCount(block);
+        const columnGroups = groupBlocksByColumn(children, columnCount);
 
         return (
           <li key={block.id}>
@@ -114,12 +147,12 @@ function StructureBranch({ blocks, selectedBlockId, onSelectBlock }) {
               {getBlockLabel(block)}
             </button>
 
-            {isInnerSection ? (
+            {columnCount ? (
               <ol className="cms-structure-list cms-structure-list--columns">
                 {Array.from({ length: columnCount }).map((_, index) => (
                   <li key={`${block.id}-column-${index}`}>
                     <div className="cms-structure-column"><span aria-hidden="true" />Columna {index + 1}</div>
-                    {index === 0 ? <StructureBranch blocks={children} selectedBlockId={selectedBlockId} onSelectBlock={onSelectBlock} /> : null}
+                    <StructureBranch blocks={columnGroups[index]} selectedBlockId={selectedBlockId} onSelectBlock={onSelectBlock} />
                   </li>
                 ))}
               </ol>
@@ -170,14 +203,21 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const [newPageTitle, setNewPageTitle] = useState("Nueva landing");
   const [isAdminNavCollapsed, setIsAdminNavCollapsed] = useState(false);
   const [builderPanel, setBuilderPanel] = useState("library");
+  const [insertionColumn, setInsertionColumn] = useState(0);
   const [structureOpen, setStructureOpen] = useState(false);
+  const [editorViewport, setEditorViewport] = useState({ mode: "desktop", customWidth: "768" });
   const [preview, setPreview] = useState({ open: false, device: "desktop", srcDoc: "" });
 
   const activePage = site.pages.find((page) => page.id === site.currentPageId) || site.pages[0];
   const activeBlocks = getActiveBlocks(site, activeView, activePage);
+  const selectedContext = findBlockContext(activeBlocks, selectedBlockId);
   const selectedBlock = findBlockById(activeBlocks, selectedBlockId);
   const isBuilderView = ["builder", "header", "navbar", "footer"].includes(activeView);
-  const insertionTargetLabel = parentBlockTypes.has(selectedBlock?.type) ? getBlockLabel(selectedBlock) : "";
+  const insertionParent = parentBlockTypes.has(selectedBlock?.type) ? selectedBlock : selectedContext?.parent;
+  const insertionColumnCount = getColumnCount(insertionParent);
+  const activeInsertionColumn = insertionParent ? clampColumn(insertionColumn, insertionColumnCount || 1) : 0;
+  const insertionTargetLabel = insertionParent ? getBlockLabel(insertionParent) : "";
+  const viewportWidth = editorViewport.mode === "custom" ? Number.parseInt(editorViewport.customWidth || "768", 10) || 768 : viewportPresets[editorViewport.mode].width;
 
   // Al montar el admin, se carga el site.json del proyecto seleccionado.
   useEffect(() => {
@@ -236,17 +276,22 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   }
 
   // Esta funcion inserta un bloque nuevo cuando se hace click o drop desde la sidebar.
-  function handleAddBlock(type, parentId = "") {
+  function handleAddBlock(type, parentId = "", column = activeInsertionColumn) {
     const block = createBlock(type);
-    const targetParentId = parentId || (parentBlockTypes.has(selectedBlock?.type) ? selectedBlock.id : "");
-    updateActiveBlocks(addBlockToParent(activeBlocks, targetParentId, block));
+    const targetParent = parentId ? findBlockById(activeBlocks, parentId) : insertionParent;
+    const targetParentId = targetParent?.id || "";
+    const targetColumn = targetParentId ? clampColumn(column, getColumnCount(targetParent)) : 0;
+    updateActiveBlocks(addBlockToParent(activeBlocks, targetParentId, block, targetColumn));
     setSelectedBlockId(block.id);
+    setInsertionColumn(targetColumn);
     setBuilderPanel("settings");
-    setStatus(targetParentId ? `Bloque agregado dentro de contenedor: ${type}` : `Bloque agregado: ${type}`);
+    setStatus(targetParentId ? `Bloque agregado en columna ${targetColumn + 1}: ${type}` : `Bloque agregado: ${type}`);
   }
 
   function handleSelectBlock(blockId) {
+    const context = findBlockContext(activeBlocks, blockId);
     setSelectedBlockId(blockId);
+    setInsertionColumn(clampColumn(context?.block?.column || 0, getColumnCount(context?.parent) || 1));
     setBuilderPanel("settings");
   }
 
@@ -660,6 +705,40 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     );
   }
 
+  function renderViewportControls() {
+    return (
+      <div className="cms-viewport-bar" aria-label="Ancho del editor">
+        <div>
+          <p className="cms-eyebrow">Vista</p>
+          <strong>{viewportWidth}px</strong>
+        </div>
+        <div className="cms-viewport-actions">
+          {Object.entries(viewportPresets).map(([mode, preset]) => (
+            <button
+              aria-pressed={editorViewport.mode === mode}
+              className={editorViewport.mode === mode ? "is-active" : ""}
+              key={mode}
+              type="button"
+              onClick={() => setEditorViewport((currentViewport) => ({ ...currentViewport, mode }))}
+            >
+              {preset.label}
+            </button>
+          ))}
+          <label className="cms-viewport-custom">
+            <span>Ancho</span>
+            <input
+              min="320"
+              max="1600"
+              type="number"
+              value={editorViewport.customWidth}
+              onChange={(event) => setEditorViewport({ mode: "custom", customWidth: event.target.value })}
+            />
+          </label>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
@@ -715,6 +794,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                 onPreview={handlePreview}
                 onSave={handleSave}
               />
+              {renderViewportControls()}
               <div className="cms-builder-grid">
                 {selectedBlock && builderPanel === "settings" ? (
                   <Inspector
@@ -727,11 +807,18 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                     onUpdateBlock={handleUpdateBlock}
                   />
                 ) : (
-                  <Sidebar insertionTargetLabel={insertionTargetLabel} onAddBlock={handleAddBlock} />
+                  <Sidebar
+                    insertionColumn={activeInsertionColumn}
+                    insertionColumnCount={insertionColumnCount}
+                    insertionTargetLabel={insertionTargetLabel}
+                    onAddBlock={handleAddBlock}
+                    onSelectInsertionColumn={setInsertionColumn}
+                  />
                 )}
                 <Canvas
                   areaLabel={getAreaLabel(activeView, activePage)}
                   blocks={activeBlocks}
+                  viewportWidth={viewportWidth}
                   selectedBlockId={selectedBlockId}
                   site={site}
                   onDropBlock={handleAddBlock}

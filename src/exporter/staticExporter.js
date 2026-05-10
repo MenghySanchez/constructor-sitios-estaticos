@@ -84,10 +84,31 @@ function findForm(site, formId) {
   return site.forms.find((form) => form.id === formId) || site.forms[0];
 }
 
+function getColumnCount(block) {
+  if (!["section", "container", "innerSection"].includes(block?.type)) return 0;
+  const columns = Number.parseInt(block.props?.columns || "1", 10);
+  return Math.max(1, Number.isFinite(columns) ? columns : 1);
+}
+
+function clampColumn(column, columnCount) {
+  const parsed = Number.parseInt(column, 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(Math.max(parsed, 0), Math.max(columnCount - 1, 0));
+}
+
+function renderColumnChildren(block, site) {
+  const columnCount = getColumnCount(block);
+  return Array.from({ length: columnCount }, (_, index) => {
+    const children = (block.children || []).filter((childBlock) => clampColumn(childBlock.column || 0, columnCount) === index);
+    const content = renderBlocks(children, site);
+    return `<div class="sb-layout__column">${content || `Columna ${index + 1}`}</div>`;
+  }).join("");
+}
+
 // Esta funcion renderiza un bloque individual a HTML estatico.
 function renderBlock(block, site) {
   const props = block.props || {};
-  const children = renderBlocks(block.children || [], site);
+  const children = renderColumnChildren(block, site);
 
   if (block.type === "section") {
     return `

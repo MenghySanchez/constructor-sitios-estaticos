@@ -1,7 +1,7 @@
 import { groupComponents } from "../components-library/registry";
 
 // La sidebar muestra la biblioteca de bloques que se pueden arrastrar al canvas.
-export function Sidebar({ insertionTargetLabel, onAddBlock }) {
+export function Sidebar({ insertionColumn, insertionColumnCount, insertionTargetLabel, onAddBlock, onSelectInsertionColumn }) {
   const groups = groupComponents();
 
   return (
@@ -15,6 +15,21 @@ export function Sidebar({ insertionTargetLabel, onAddBlock }) {
         <div className="cms-insertion-target" role="status">
           <span>Insertando dentro de</span>
           <strong>{insertionTargetLabel}</strong>
+          {insertionColumnCount > 1 ? (
+            <div className="cms-column-targets" aria-label="Columna destino">
+              {Array.from({ length: insertionColumnCount }).map((_, index) => (
+                <button
+                  aria-pressed={insertionColumn === index}
+                  className={insertionColumn === index ? "is-active" : ""}
+                  key={index}
+                  type="button"
+                  onClick={() => onSelectInsertionColumn(index)}
+                >
+                  Col {index + 1}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -13,7 +13,7 @@ export const componentRegistry = [
       helper: "Usa esta seccion como base visual para agrupar contenido.",
       layout: "grid",
       direction: "row",
-      columns: "2",
+      columns: "1",
       gap: "24",
       paddingBlock: "64",
       paddingInline: "32",
