@@ -311,6 +311,24 @@ export const componentRegistry = [
       { name: "formId", label: "Formulario", type: "form" },
     ],
   },
+  {
+    type: "customCode",
+    label: "HTML / HTMX / JS",
+    group: "Avanzado",
+    description: "Bloque libre para insertar HTML, HTMX o JavaScript.",
+    defaults: {
+      codeType: "html",
+      html: "<div class=\"custom-box\">Contenido HTML personalizado</div>",
+      js: "console.log('Static Builder custom JS');",
+      previewMode: "render",
+    },
+    fields: [
+      { name: "codeType", label: "Tipo", type: "select", options: ["html", "htmx", "js"] },
+      { name: "previewMode", label: "Preview builder", type: "select", options: ["render", "code"] },
+      { name: "html", label: "HTML / HTMX", type: "code" },
+      { name: "js", label: "JavaScript", type: "code" },
+    ],
+  },
 ];
 
 // Este mapa permite encontrar rapido la definicion de un bloque por type.

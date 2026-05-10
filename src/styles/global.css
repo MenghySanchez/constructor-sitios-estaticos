@@ -1343,6 +1343,14 @@ a:active {
   resize: vertical;
 }
 
+.cms-field .cms-code-editor {
+  min-height: 220px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
 .cms-field input:focus,
 .cms-field textarea:focus,
 .cms-field select:focus,
@@ -1882,6 +1890,48 @@ a:active {
 .preview-form__message {
   margin: 0;
   font-size: var(--cms-text-sm) !important;
+}
+
+.preview-code-block {
+  margin: 34px 0;
+  overflow: hidden;
+  border: 1px solid var(--cms-line);
+  border-radius: 22px;
+  background: var(--cms-paper-soft);
+}
+
+.preview-code-block__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--cms-line);
+  background: var(--cms-panel-2);
+  color: var(--cms-ink);
+  font-size: var(--cms-text-sm);
+  font-weight: 900;
+}
+
+.preview-code-block__bar small {
+  color: var(--cms-muted);
+  font-weight: 700;
+}
+
+.preview-code-block__render {
+  padding: 18px;
+}
+
+.preview-code-block pre {
+  max-height: 360px;
+  margin: 0;
+  overflow: auto;
+  padding: 18px;
+  background: oklch(0.22 0.018 74);
+  color: oklch(0.96 0.01 82);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .preview-footer {

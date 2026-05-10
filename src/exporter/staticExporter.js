@@ -326,6 +326,20 @@ function renderBlock(block, site) {
       </section>`;
   }
 
+  if (block.type === "customCode") {
+    if (props.codeType === "js") {
+      return `
+        <section ${buildAttrs(props, "sb-code-block sb-code-block--js")}>
+          <script>${String(props.js || "").replaceAll("</script", "<\\/script")}</script>
+        </section>`;
+    }
+
+    return `
+      <section ${buildAttrs(props, `sb-code-block sb-code-block--${props.codeType || "html"}`)}>
+        ${props.html || ""}
+      </section>`;
+  }
+
   return "";
 }
 

@@ -318,5 +318,23 @@ export function ComponentRenderer({ block, children, site, viewportMode = "deskt
     );
   }
 
+  if (block.type === "customCode") {
+    const shouldRenderHtml = ["html", "htmx"].includes(props.codeType) && props.previewMode === "render";
+
+    return (
+      <section {...getBlockProps(props, `preview-code-block preview-code-block--${props.codeType || "html"}`)}>
+        <div className="preview-code-block__bar">
+          <span>{props.codeType === "js" ? "JavaScript" : props.codeType === "htmx" ? "HTMX" : "HTML"}</span>
+          {props.codeType === "js" ? <small>Se ejecuta al exportar</small> : null}
+        </div>
+        {shouldRenderHtml ? (
+          <div className="preview-code-block__render" dangerouslySetInnerHTML={{ __html: props.html || "" }} />
+        ) : (
+          <pre><code>{props.codeType === "js" ? props.js : props.html}</code></pre>
+        )}
+      </section>
+    );
+  }
+
   return <div className="preview-unknown">Bloque no soportado: {block.type}</div>;
 }

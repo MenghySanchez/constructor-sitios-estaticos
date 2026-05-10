@@ -54,6 +54,10 @@ function FieldControl({ field, value, site, onChange }) {
     return <textarea value={value || ""} onChange={(event) => onChange(event.target.value)} rows={4} />;
   }
 
+  if (field.type === "code") {
+    return <textarea className="cms-code-editor" value={value || ""} onChange={(event) => onChange(event.target.value)} rows={10} spellCheck={false} />;
+  }
+
   if (field.type === "color") {
     return <input type="color" value={value || "#f6c453"} onChange={(event) => onChange(event.target.value)} />;
   }
