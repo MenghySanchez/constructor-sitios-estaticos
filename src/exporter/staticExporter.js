@@ -127,6 +127,19 @@ function findForm(site, formId) {
   return site.forms.find((form) => form.id === formId) || site.forms[0];
 }
 
+function resolvePageHref(site, pageId, fallback = "#") {
+  const page = site.pages.find((item) => item.id === pageId);
+  return page ? `../../${slugify(page.slug || page.title)}/public/index.html` : fallback;
+}
+
+function buildLinkAttrs(site, props, { linkType = "linkType", url = "url", pageId = "pageId", target = "target" } = {}) {
+  const href = props[linkType] === "page" ? resolvePageHref(site, props[pageId], props[url] || "#") : props[url] || "#";
+  const linkTarget = props[target] || "_self";
+  const rel = linkTarget === "_blank" ? ' rel="noopener noreferrer"' : "";
+
+  return `href="${escapeAttr(href)}" target="${escapeAttr(linkTarget)}"${rel}`;
+}
+
 function getColumnCount(block) {
   if (!["section", "container", "innerSection"].includes(block?.type)) return 0;
   const columns = Number.parseInt(block.props?.columns || "1", 10);
@@ -187,7 +200,7 @@ function renderBlock(block, site) {
           <p class="sb-kicker">${escapeHtml(props.eyebrow)}</p>
           <h1>${escapeHtml(props.title)}</h1>
           <p>${escapeHtml(props.subtitle)}</p>
-          <a class="sb-button sb-button--primary" href="${escapeAttr(props.buttonUrl)}">${escapeHtml(props.buttonLabel)}</a>
+          <a class="sb-button sb-button--primary" ${buildLinkAttrs(site, props, { linkType: "buttonLinkType", url: "buttonUrl", pageId: "buttonPageId", target: "buttonTarget" })}>${escapeHtml(props.buttonLabel)}</a>
         </div>
         <figure class="sb-hero__media">
           <img src="${escapeAttr(props.imageUrl)}" alt="${escapeAttr(props.title)}" loading="lazy">
@@ -225,7 +238,7 @@ function renderBlock(block, site) {
   if (block.type === "link") {
     return `
       <section ${buildAttrs(props, `sb-link-row sb-link-row--${props.align || "left"}`)}>
-        <a class="sb-text-link" href="${escapeAttr(props.url)}">${escapeHtml(props.label)}</a>
+        <a class="sb-text-link" ${buildLinkAttrs(site, props)}>${escapeHtml(props.label)}</a>
       </section>`;
   }
 
@@ -240,7 +253,7 @@ function renderBlock(block, site) {
   if (block.type === "button") {
     return `
       <section ${buildAttrs(props, "sb-button-row")}>
-        <a class="sb-button sb-button--${escapeAttr(props.style || "primary")}" href="${escapeAttr(props.url)}">${escapeHtml(props.label)}</a>
+        <a class="sb-button sb-button--${escapeAttr(props.style || "primary")}" ${buildLinkAttrs(site, props)}>${escapeHtml(props.label)}</a>
       </section>`;
   }
 
@@ -282,7 +295,7 @@ function renderBlock(block, site) {
       <nav ${buildAttrs(props, "sb-navbar")}>
         <a class="sb-navbar__brand" href="#top">${escapeHtml(props.brand)}</a>
         <div class="sb-navbar__links">${links}</div>
-        <a class="sb-button sb-button--small" href="${escapeAttr(props.ctaUrl)}">${escapeHtml(props.ctaLabel)}</a>
+        <a class="sb-button sb-button--small" ${buildLinkAttrs(site, props, { linkType: "ctaLinkType", url: "ctaUrl", pageId: "ctaPageId", target: "ctaTarget" })}>${escapeHtml(props.ctaLabel)}</a>
       </nav>`;
   }
 

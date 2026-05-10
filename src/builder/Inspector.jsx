@@ -107,6 +107,19 @@ function FieldControl({ field, value, site, onChange }) {
     );
   }
 
+  if (field.type === "page") {
+    return (
+      <select value={value || ""} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Elegir pagina</option>
+        {site.pages.map((page) => (
+          <option key={page.id} value={page.id}>
+            {page.title}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   return <input value={value || ""} onChange={(event) => onChange(event.target.value)} />;
 }
 

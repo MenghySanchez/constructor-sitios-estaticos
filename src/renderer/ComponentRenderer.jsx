@@ -96,6 +96,22 @@ function findForm(site, formId) {
   return site.forms.find((form) => form.id === formId) || site.forms[0];
 }
 
+function resolvePageHref(site, pageId, fallback = "#") {
+  const page = site.pages.find((item) => item.id === pageId);
+  return page ? `#${slugify(page.slug || page.title)}` : fallback;
+}
+
+function resolveLinkProps(site, props, { linkType = "linkType", url = "url", pageId = "pageId", target = "target" } = {}) {
+  const href = props[linkType] === "page" ? resolvePageHref(site, props[pageId], props[url] || "#") : props[url] || "#";
+  const linkTarget = props[target] || "_self";
+
+  return {
+    href,
+    target: linkTarget,
+    rel: linkTarget === "_blank" ? "noopener noreferrer" : undefined,
+  };
+}
+
 // Este componente renderiza un bloque dentro del canvas del admin.
 // Es la version React del render estatico que luego se exporta como HTML.
 export function ComponentRenderer({ block, children, site, viewportMode = "desktop" }) {
@@ -142,13 +158,15 @@ export function ComponentRenderer({ block, children, site, viewportMode = "deskt
   }
 
   if (block.type === "hero") {
+    const buttonLink = resolveLinkProps(site, props, { linkType: "buttonLinkType", url: "buttonUrl", pageId: "buttonPageId", target: "buttonTarget" });
+
     return (
       <section {...getBlockProps(props, "preview-hero", { "--accent": props.accent || "oklch(0.72 0.145 68)" })}>
         <div className="preview-hero__copy">
           <p className="preview-kicker">{props.eyebrow}</p>
           <h1>{props.title}</h1>
           <p>{props.subtitle}</p>
-          <a className="preview-button preview-button--primary" href={props.buttonUrl}>
+          <a className="preview-button preview-button--primary" {...buttonLink}>
             {props.buttonLabel}
           </a>
         </div>
@@ -190,9 +208,11 @@ export function ComponentRenderer({ block, children, site, viewportMode = "deskt
   }
 
   if (block.type === "link") {
+    const linkProps = resolveLinkProps(site, props);
+
     return (
       <section {...getBlockProps(props, `preview-link-row preview-link-row--${props.align || "left"}`)}>
-        <a className="preview-text-link" href={props.url}>{props.label}</a>
+        <a className="preview-text-link" {...linkProps}>{props.label}</a>
       </section>
     );
   }
@@ -207,9 +227,11 @@ export function ComponentRenderer({ block, children, site, viewportMode = "deskt
   }
 
   if (block.type === "button") {
+    const linkProps = resolveLinkProps(site, props);
+
     return (
       <section {...getBlockProps(props, "preview-button-row")}>
-        <a className={`preview-button preview-button--${props.style || "primary"}`} href={props.url}>
+        <a className={`preview-button preview-button--${props.style || "primary"}`} {...linkProps}>
           {props.label}
         </a>
       </section>
@@ -255,6 +277,8 @@ export function ComponentRenderer({ block, children, site, viewportMode = "deskt
   }
 
   if (block.type === "navbar") {
+    const ctaLink = resolveLinkProps(site, props, { linkType: "ctaLinkType", url: "ctaUrl", pageId: "ctaPageId", target: "ctaTarget" });
+
     return (
       <nav {...getBlockProps(props, "preview-navbar")}>
         <a className="preview-navbar__brand" href="#top">
@@ -267,7 +291,7 @@ export function ComponentRenderer({ block, children, site, viewportMode = "deskt
             </a>
           ))}
         </div>
-        <a className="preview-button preview-button--small" href={props.ctaUrl}>
+        <a className="preview-button preview-button--small" {...ctaLink}>
           {props.ctaLabel}
         </a>
       </nav>
