@@ -36,14 +36,16 @@ export function App() {
   // Esta funcion crea un proyecto y refresca la lista visible.
   async function handleCreateProject(name) {
     const payload = await createProject(name);
-    setProjects(payload.manifest.projects);
+    const projectPayload = await loadProjects();
+    setProjects(projectPayload.projects);
     return payload.project;
   }
 
   // Esta funcion elimina un proyecto y refresca la lista antes de volver al selector.
   async function handleDeleteProject(projectId) {
     const payload = await deleteProject(projectId);
-    setProjects(payload.manifest.projects);
+    const projectPayload = await loadProjects();
+    setProjects(projectPayload.projects);
 
     if (selectedProject?.id === projectId) {
       setSelectedProject(null);

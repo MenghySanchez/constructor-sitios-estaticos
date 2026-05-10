@@ -1,5 +1,62 @@
 import { ComponentRenderer } from "../renderer/ComponentRenderer";
 
+const parentBlockTypes = new Set(["section", "container", "innerSection"]);
+
+function RenderedBlock({ block, site, selectedBlockId, onDropBlock, onSelectBlock }) {
+  const isSelected = selectedBlockId === block.id;
+
+  function selectCurrentBlock() {
+    onSelectBlock(block.id);
+  }
+
+  return (
+    <div
+      aria-label={`Editar bloque ${block.type}`}
+      className={`cms-rendered-block ${isSelected ? "is-selected" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation();
+        selectCurrentBlock();
+      }}
+      onDragOver={(event) => {
+        if (parentBlockTypes.has(block.type)) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDrop={(event) => {
+        if (!parentBlockTypes.has(block.type)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        const type = event.dataTransfer.getData("component/type");
+        if (type) onDropBlock(type, block.id);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectCurrentBlock();
+        }
+      }}
+    >
+      <ComponentRenderer block={block} site={site}>
+        {(block.children || []).map((childBlock) => (
+          <RenderedBlock
+            block={childBlock}
+            key={childBlock.id}
+            selectedBlockId={selectedBlockId}
+            site={site}
+            onDropBlock={onDropBlock}
+            onSelectBlock={onSelectBlock}
+          />
+        ))}
+      </ComponentRenderer>
+    </div>
+  );
+}
+
 // El canvas recibe drops de la sidebar y pinta los bloques de la zona activa.
 export function Canvas({ blocks, site, selectedBlockId, areaLabel, onDropBlock, onSelectBlock }) {
   return (
@@ -31,15 +88,14 @@ export function Canvas({ blocks, site, selectedBlockId, areaLabel, onDropBlock, 
           </div>
         ) : (
           blocks.map((block) => (
-            <button
-              aria-label={`Editar bloque ${block.type}`}
-              className={`cms-rendered-block ${selectedBlockId === block.id ? "is-selected" : ""}`}
+            <RenderedBlock
+              block={block}
               key={block.id}
-              type="button"
-              onClick={() => onSelectBlock(block.id)}
-            >
-              <ComponentRenderer block={block} site={site} />
-            </button>
+              selectedBlockId={selectedBlockId}
+              site={site}
+              onDropBlock={onDropBlock}
+              onSelectBlock={onSelectBlock}
+            />
           ))
         )}
       </div>

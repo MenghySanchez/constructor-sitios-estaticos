@@ -160,6 +160,35 @@ export async function exportPage(projectId, site, pageId) {
   return payload;
 }
 
+// Esta funcion descarga un ZIP con todas las paginas exportadas del proyecto.
+export async function exportProjectZip(projectId) {
+  const response = await fetch("/api/export-project", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  });
+
+  if (!response.ok) {
+    const payload = await readApiPayload(response);
+    throw new Error(payload.error || "No se pudo exportar el ZIP del proyecto");
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const fileName = disposition.match(/filename="?([^";]+)"?/)?.[1] || "proyecto.zip";
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  return { fileName };
+}
+
 // Esta funcion crea una pagina nueva con slug seguro.
 export function createPage(title = "Nueva landing") {
   return {

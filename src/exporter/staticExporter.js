@@ -44,6 +44,16 @@ function buildAttrs(props, baseClass, style = "") {
 function buildLayoutStyle(props, fallback = {}) {
   const layout = props.layout || fallback.layout || "grid";
   const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
+  let background = props.background || fallback.background;
+
+  if (props.backgroundType === "image" && props.backgroundImage) {
+    background = `linear-gradient(rgba(22, 20, 15, 0.16), rgba(22, 20, 15, 0.16)), url('${props.backgroundImage}') center / cover`;
+  }
+
+  if (props.backgroundType === "gradient" && props.backgroundGradient) {
+    background = props.backgroundGradient;
+  }
+
   const styles = [
     `display:${layout}`,
     `gap:${toCssNumber(props.gap, fallback.gap || 16)}`,
@@ -53,7 +63,7 @@ function buildLayoutStyle(props, fallback = {}) {
 
   if (layout === "grid") styles.push(`grid-template-columns:repeat(${Number.isFinite(columns) ? columns : 1}, minmax(0, 1fr))`);
   if (layout === "flex") styles.push(`flex-direction:${props.direction || fallback.direction || "column"}`);
-  if (props.background || fallback.background) styles.push(`background:${props.background || fallback.background}`);
+  if (background) styles.push(`background:${background}`);
 
   return styles.join("; ");
 }
@@ -77,26 +87,19 @@ function findForm(site, formId) {
 // Esta funcion renderiza un bloque individual a HTML estatico.
 function renderBlock(block, site) {
   const props = block.props || {};
+  const children = renderBlocks(block.children || [], site);
 
   if (block.type === "section") {
     return `
       <section ${buildAttrs(props, "sb-layout sb-layout--section", buildLayoutStyle(props, { gap: 24, paddingBlock: 64, paddingInline: 32, background: "#fffaf0" }))}>
-        <div class="sb-layout__placeholder">
-          <p class="sb-kicker">Seccion</p>
-          <h2>${escapeHtml(props.title)}</h2>
-          <p>${escapeHtml(props.helper)}</p>
-        </div>
-        <div class="sb-layout__drop-hint">Agrega elementos debajo o usa esta caja como guia de estructura.</div>
+        ${children || `<div class="sb-layout__placeholder"><p class="sb-kicker">Seccion</p><h2>${escapeHtml(props.title)}</h2><p>${escapeHtml(props.helper)}</p></div>`}
       </section>`;
   }
 
   if (block.type === "container") {
     return `
       <section ${buildAttrs(props, "sb-layout sb-layout--container", buildLayoutStyle(props, { layout: "flex", gap: 16, paddingBlock: 32, paddingInline: 24, background: "#ffffff" }))}>
-        <div class="sb-layout__placeholder">
-          <p class="sb-kicker">Contenedor</p>
-          <h2>${escapeHtml(props.label)}</h2>
-        </div>
+        ${children || `<div class="sb-layout__placeholder"><p class="sb-kicker">Contenedor</p><h2>${escapeHtml(props.label)}</h2></div>`}
       </section>`;
   }
 
@@ -108,7 +111,7 @@ function renderBlock(block, site) {
 
     return `
       <section ${buildAttrs(props, "sb-layout sb-layout--inner", buildLayoutStyle({ ...props, layout: "grid" }, { columns: 2, gap: 18, paddingBlock: 28, paddingInline: 20 }))}>
-        ${columns}
+        ${children || columns}
       </section>`;
   }
 

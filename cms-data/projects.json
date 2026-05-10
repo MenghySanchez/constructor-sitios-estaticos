@@ -5,7 +5,13 @@
       "name": "Proyecto migrado",
       "slug": "proyecto-migrado",
       "createdAt": "2026-05-10T06:47:52.834Z"
+    },
+    {
+      "id": "project-0szewsx",
+      "name": "desk",
+      "slug": "desk",
+      "createdAt": "2026-05-10T13:05:32.672Z"
     }
   ],
-  "currentProjectId": "project-23rnxud"
+  "currentProjectId": "project-0szewsx"
 }

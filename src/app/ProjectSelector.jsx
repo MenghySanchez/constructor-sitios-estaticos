@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { buildStaticPage } from "../exporter/staticExporter";
-import { loadSite } from "../store/builderStore";
+import { exportProjectZip, loadSite } from "../store/builderStore";
 
 function buildProjectPreviewSrcDoc(site) {
   const pageId = site.currentPageId || site.pages[0]?.id;
@@ -90,26 +90,41 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
     }
   }
 
+  async function handleExportProject(project) {
+    setLoading(true);
+    setStatus(`Generando ZIP de ${project.name}...`);
+
+    try {
+      const payload = await exportProjectZip(project.id);
+      setStatus(`ZIP listo: ${payload.fileName}`);
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function closePreview() {
     setPreview({ open: false, projectName: "", srcDoc: "" });
   }
 
   return (
     <main className="project-shell">
-      <section className="project-hero">
+      <section className="project-hero project-hero--dashboard">
         <div>
-          <p className="cms-eyebrow">Panel de proyectos</p>
-          <h1>Elige un sitio para previsualizarlo o editarlo.</h1>
+          <p className="cms-eyebrow">Dashboard</p>
+          <h1>Gestiona tus proyectos web.</h1>
           <p>
-            El builder solo se abre cuando entras a editar un proyecto. Desde aqui puedes crear, revisar y eliminar sitios.
+            Revisa tus sitios, previsualiza el contenido y exporta un ZIP listo para subirlo a otro servidor.
           </p>
         </div>
-        <button className="cms-button cms-button--ghost" type="button" onClick={onLogout}>
-          Cerrar sesion
-        </button>
+        <div className="project-dashboard-stats" aria-label="Resumen de proyectos">
+          <article><strong>{projects.length}</strong><span>Proyectos</span></article>
+          <article><strong>{projects.reduce((total, project) => total + (project.pageCount || 0), 0)}</strong><span>Paginas</span></article>
+        </div>
       </section>
 
-      <section className="project-grid">
+      <section className="project-grid project-grid--dashboard">
         <div className="project-side-stack">
           <form className="project-create-card" aria-busy={loading} onSubmit={handleCreateProject}>
             <p className="cms-eyebrow">Nuevo</p>
@@ -152,9 +167,21 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
             </button>
             <p className="auth-status" role="status">{status}</p>
           </form>
+          <button className="cms-button cms-button--ghost" type="button" onClick={onLogout}>
+            Cerrar sesion
+          </button>
         </div>
 
-        <div className="project-list">
+        <section className="project-board" aria-label="Proyectos creados">
+          <div className="project-board__head">
+            <div>
+              <p className="cms-eyebrow">Sitios</p>
+              <h2>Proyectos creados</h2>
+            </div>
+            <p className="auth-status" role="status">{status}</p>
+          </div>
+
+          <div className="project-list">
           {projects.length === 0 ? (
             <article className="project-empty">
               <h2>No hay proyectos todavia</h2>
@@ -166,7 +193,10 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
                 <div>
                   <p className="cms-eyebrow">{project.slug}</p>
                   <h2>{project.name}</h2>
-                  <small>cms-data/projects/{project.slug}/site.json</small>
+                  <div className="project-card__meta">
+                    <span>{project.pageCount ?? 0} paginas</span>
+                    <span>cms-data/projects/{project.slug}/site.json</span>
+                  </div>
                 </div>
                 <div className="project-card__actions">
                   <button
@@ -181,6 +211,14 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
                     Editar
                   </button>
                   <button
+                    className="cms-button cms-button--primary"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleExportProject(project)}
+                  >
+                    Exportar ZIP
+                  </button>
+                  <button
                     className="cms-button cms-button--danger"
                     type="button"
                     disabled={loading}
@@ -192,7 +230,8 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
               </article>
             ))
           )}
-        </div>
+          </div>
+        </section>
       </section>
 
       {preview.open ? (

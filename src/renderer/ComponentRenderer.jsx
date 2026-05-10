@@ -43,6 +43,16 @@ function getBlockProps(props, baseClass, style = {}) {
   };
 }
 
+function getBackgroundStyle(props, fallback = {}) {
+  if (props.backgroundType === "image" && props.backgroundImage) {
+    return `linear-gradient(oklch(0.18 0.018 74 / 0.16), oklch(0.18 0.018 74 / 0.16)), url("${props.backgroundImage}") center / cover`;
+  }
+
+  if (props.backgroundType === "gradient" && props.backgroundGradient) return props.backgroundGradient;
+
+  return props.background || fallback.background;
+}
+
 function getLayoutStyle(props, fallback = {}) {
   const layout = props.layout || fallback.layout || "grid";
   const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
@@ -54,7 +64,7 @@ function getLayoutStyle(props, fallback = {}) {
     gap: toCssNumber(props.gap, fallback.gap || 16),
     paddingBlock: toCssNumber(props.paddingBlock, fallback.paddingBlock || 32),
     paddingInline: toCssNumber(props.paddingInline, fallback.paddingInline || 24),
-    background: props.background || fallback.background,
+    background: getBackgroundStyle(props, fallback),
   };
 }
 
@@ -72,18 +82,22 @@ function findForm(site, formId) {
 
 // Este componente renderiza un bloque dentro del canvas del admin.
 // Es la version React del render estatico que luego se exporta como HTML.
-export function ComponentRenderer({ block, site }) {
+export function ComponentRenderer({ block, children, site }) {
   const props = block.props || {};
 
   if (block.type === "section") {
     return (
       <section {...getBlockProps(props, "preview-layout preview-layout--section", getLayoutStyle(props, { gap: 24, paddingBlock: 64, paddingInline: 32, background: "#fffaf0" }))}>
-        <div className="preview-layout__placeholder">
-          <p className="preview-kicker">Seccion</p>
-          <h2>{props.title}</h2>
-          <p>{props.helper}</p>
-        </div>
-        <div className="preview-layout__drop-hint">Agrega elementos debajo o usa esta caja como guia de estructura.</div>
+        {children?.length ? children : (
+          <>
+            <div className="preview-layout__placeholder">
+              <p className="preview-kicker">Seccion</p>
+              <h2>{props.title}</h2>
+              <p>{props.helper}</p>
+            </div>
+            <div className="preview-layout__drop-hint">Arrastra elementos aqui o selecciona la seccion y haz click en la biblioteca.</div>
+          </>
+        )}
       </section>
     );
   }
@@ -91,10 +105,12 @@ export function ComponentRenderer({ block, site }) {
   if (block.type === "container") {
     return (
       <section {...getBlockProps(props, "preview-layout preview-layout--container", getLayoutStyle(props, { layout: "flex", gap: 16, paddingBlock: 32, paddingInline: 24, background: "#ffffff" }))}>
-        <div className="preview-layout__placeholder">
-          <p className="preview-kicker">Contenedor</p>
-          <h2>{props.label}</h2>
-        </div>
+        {children?.length ? children : (
+          <div className="preview-layout__placeholder">
+            <p className="preview-kicker">Contenedor</p>
+            <h2>{props.label}</h2>
+          </div>
+        )}
       </section>
     );
   }
@@ -102,7 +118,7 @@ export function ComponentRenderer({ block, site }) {
   if (block.type === "innerSection") {
     return (
       <section {...getBlockProps(props, "preview-layout preview-layout--inner", getLayoutStyle({ ...props, layout: "grid" }, { columns: 2, gap: 18, paddingBlock: 28, paddingInline: 20 }))}>
-        {Array.from({ length: Number.parseInt(props.columns || "2", 10) || 2 }).map((_, index) => (
+        {children?.length ? children : Array.from({ length: Number.parseInt(props.columns || "2", 10) || 2 }).map((_, index) => (
           <div className="preview-layout__column" key={index}>{props.title} {index + 1}</div>
         ))}
       </section>

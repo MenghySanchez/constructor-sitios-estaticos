@@ -21,6 +21,73 @@ const adminViews = [
   { id: "forms", label: "Formularios", short: "Fo" },
 ];
 
+const parentBlockTypes = new Set(["section", "container", "innerSection"]);
+
+function findBlockById(blocks, blockId) {
+  for (const block of blocks) {
+    if (block.id === blockId) return block;
+    const childBlock = findBlockById(block.children || [], blockId);
+    if (childBlock) return childBlock;
+  }
+
+  return null;
+}
+
+function mapBlocks(blocks, mapper) {
+  return blocks.map((block) => mapper({ ...block, children: mapBlocks(block.children || [], mapper) }));
+}
+
+function addBlockToParent(blocks, parentId, blockToAdd) {
+  if (!parentId) return [...blocks, blockToAdd];
+
+  return mapBlocks(blocks, (block) => {
+    if (block.id !== parentId) return block;
+    return { ...block, children: [...(block.children || []), blockToAdd] };
+  });
+}
+
+function removeBlockById(blocks, blockId) {
+  return blocks
+    .filter((block) => block.id !== blockId)
+    .map((block) => ({ ...block, children: removeBlockById(block.children || [], blockId) }));
+}
+
+function duplicateBlockById(blocks, blockId) {
+  return blocks.flatMap((block) => {
+    const children = duplicateBlockById(block.children || [], blockId);
+    const nextBlock = { ...block, children };
+
+    if (block.id !== blockId) return [nextBlock];
+
+    return [nextBlock, cloneBlockWithNewIds(nextBlock)];
+  });
+}
+
+function cloneBlockWithNewIds(block) {
+  return {
+    ...block,
+    id: createId("block"),
+    props: { ...block.props },
+    children: (block.children || []).map(cloneBlockWithNewIds),
+  };
+}
+
+function moveBlockById(blocks, blockId, direction) {
+  const index = blocks.findIndex((block) => block.id === blockId);
+
+  if (index >= 0) {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= blocks.length) return blocks;
+
+    const nextBlocks = [...blocks];
+    const [removed] = nextBlocks.splice(index, 1);
+    nextBlocks.splice(nextIndex, 0, removed);
+    return nextBlocks;
+  }
+
+  return blocks.map((block) => ({ ...block, children: moveBlockById(block.children || [], blockId, direction) }));
+}
+
 // Esta funcion devuelve el nombre legible de la zona editada.
 function getAreaLabel(activeView, activePage) {
   if (activeView === "header") return "Seccion global: Header";
@@ -61,7 +128,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
 
   const activePage = site.pages.find((page) => page.id === site.currentPageId) || site.pages[0];
   const activeBlocks = getActiveBlocks(site, activeView, activePage);
-  const selectedBlock = activeBlocks.find((block) => block.id === selectedBlockId);
+  const selectedBlock = findBlockById(activeBlocks, selectedBlockId);
   const isBuilderView = ["builder", "header", "navbar", "footer"].includes(activeView);
 
   // Al montar el admin, se carga el site.json del proyecto seleccionado.
@@ -121,47 +188,37 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   }
 
   // Esta funcion inserta un bloque nuevo cuando se hace click o drop desde la sidebar.
-  function handleAddBlock(type) {
+  function handleAddBlock(type, parentId = "") {
     const block = createBlock(type);
-    updateActiveBlocks([...activeBlocks, block]);
+    const targetParentId = parentId || (parentBlockTypes.has(selectedBlock?.type) ? selectedBlock.id : "");
+    updateActiveBlocks(addBlockToParent(activeBlocks, targetParentId, block));
     setSelectedBlockId(block.id);
-    setStatus(`Bloque agregado: ${type}`);
+    setStatus(targetParentId ? `Bloque agregado dentro de contenedor: ${type}` : `Bloque agregado: ${type}`);
   }
 
   // Esta funcion actualiza props del bloque seleccionado desde el inspector.
   function handleUpdateBlock(blockId, patch) {
-    updateActiveBlocks(
-      activeBlocks.map((block) => (block.id === blockId ? { ...block, props: { ...block.props, ...patch } } : block)),
-    );
+    updateActiveBlocks(mapBlocks(activeBlocks, (block) => (block.id === blockId ? { ...block, props: { ...block.props, ...patch } } : block)));
   }
 
   // Esta funcion borra un bloque de la zona activa.
   function handleDeleteBlock(blockId) {
-    updateActiveBlocks(activeBlocks.filter((block) => block.id !== blockId));
+    updateActiveBlocks(removeBlockById(activeBlocks, blockId));
     setSelectedBlockId("");
   }
 
   // Esta funcion duplica un bloque conservando sus props.
   function handleDuplicateBlock(blockId) {
     const block = activeBlocks.find((item) => item.id === blockId);
-    if (!block) return;
+    const nestedBlock = block || findBlockById(activeBlocks, blockId);
+    if (!nestedBlock) return;
 
-    const duplicate = { ...block, id: createId("block"), props: { ...block.props } };
-    updateActiveBlocks([...activeBlocks, duplicate]);
-    setSelectedBlockId(duplicate.id);
+    updateActiveBlocks(duplicateBlockById(activeBlocks, blockId));
   }
 
   // Esta funcion mueve bloques arriba o abajo sin salir del canvas.
   function handleMoveBlock(blockId, direction) {
-    const index = activeBlocks.findIndex((block) => block.id === blockId);
-    const nextIndex = index + direction;
-
-    if (index < 0 || nextIndex < 0 || nextIndex >= activeBlocks.length) return;
-
-    const nextBlocks = [...activeBlocks];
-    const [removed] = nextBlocks.splice(index, 1);
-    nextBlocks.splice(nextIndex, 0, removed);
-    updateActiveBlocks(nextBlocks);
+    updateActiveBlocks(moveBlockById(activeBlocks, blockId, direction));
   }
 
   // Esta funcion persiste manualmente el estado completo del CMS.

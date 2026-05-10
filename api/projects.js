@@ -1,4 +1,4 @@
-import { createProject, deleteProject, loadProjectsManifest, readJsonBody, requireAuth, sendJson, sendMethodNotAllowed } from './_lib/cmsApi.js'
+import { createProject, deleteProject, loadProjectsManifest, loadSite, readJsonBody, requireAuth, sendJson, sendMethodNotAllowed } from './_lib/cmsApi.js'
 
 // /api/projects: lista proyectos o crea uno nuevo.
 export default async function handler(req, res) {
@@ -6,7 +6,18 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const manifest = await loadProjectsManifest()
-    sendJson(res, 200, { ok: true, ...manifest })
+    const projects = await Promise.all(
+      manifest.projects.map(async (project) => {
+        try {
+          const site = await loadSite(project.id)
+          return { ...project, pageCount: site.pages.length }
+        } catch {
+          return { ...project, pageCount: 0 }
+        }
+      }),
+    )
+
+    sendJson(res, 200, { ok: true, ...manifest, projects })
     return
   }
 
