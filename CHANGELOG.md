@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.3 - 2026-05-10
+
+- Agregada eliminacion de proyectos desde la pantalla de proyectos.
+- Agregado endpoint `DELETE /api/projects` para API local y Vercel.
+- La eliminacion local limpia la carpeta de datos del proyecto y sus exports asociados.
+
+### Verificacion
+
+- `npm run lint`
+- `npm run build`
+
 ## v0.2.2 - 2026-05-10
 
 - Reemplazado `api/[...path].js` por endpoints explicitos para evitar errores de routing en Vercel.

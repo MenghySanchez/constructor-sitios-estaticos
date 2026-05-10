@@ -275,6 +275,26 @@ export async function createProject(name) {
   return { project, manifest: nextManifest }
 }
 
+// Esta funcion elimina un proyecto del runtime de Vercel y limpia sus archivos temporales.
+export async function deleteProject(projectId) {
+  const manifest = await loadProjectsManifest()
+  const project = manifest.projects.find((item) => item.id === projectId)
+
+  if (!project) throw new Error('Proyecto no encontrado')
+
+  const nextProjects = manifest.projects.filter((item) => item.id !== projectId)
+  const nextManifest = {
+    projects: nextProjects,
+    currentProjectId: manifest.currentProjectId === projectId ? nextProjects[0]?.id || '' : manifest.currentProjectId,
+  }
+
+  await fs.rm(runtimePath('projects', project.slug), { recursive: true, force: true })
+  await fs.rm(runtimePath('exports', project.slug), { recursive: true, force: true })
+  await saveProjectsManifest(nextManifest)
+
+  return { project, manifest: nextManifest }
+}
+
 // Esta funcion exporta una landing a /tmp en Vercel.
 export async function exportStaticPage(projectId, siteInput, pageId) {
   const { project } = await findProject(projectId)

@@ -98,6 +98,23 @@ export async function createProject(name) {
   return payload;
 }
 
+// Esta funcion elimina un proyecto y pide al servidor limpiar su carpeta y exports.
+export async function deleteProject(projectId) {
+  const response = await fetch("/api/projects", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  });
+
+  const payload = await readApiPayload(response);
+
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.error || "No se pudo eliminar el proyecto");
+  }
+
+  return payload;
+}
+
 // Esta funcion pide al servidor local el JSON actual del proyecto seleccionado.
 export async function loadSite(projectId) {
   const response = await fetch(`/api/site?projectId=${encodeURIComponent(projectId)}`);

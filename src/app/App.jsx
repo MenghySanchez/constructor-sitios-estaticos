@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Builder } from "../builder/Builder";
-import { changePassword, createProject, getAuthStatus, loadProjects, login, logout } from "../store/builderStore";
+import { changePassword, createProject, deleteProject, getAuthStatus, loadProjects, login, logout } from "../store/builderStore";
 import { LoginScreen } from "./LoginScreen";
 import { ProjectSelector } from "./ProjectSelector";
 
@@ -40,6 +40,18 @@ export function App() {
     return payload.project;
   }
 
+  // Esta funcion elimina un proyecto y refresca la lista antes de volver al selector.
+  async function handleDeleteProject(projectId) {
+    const payload = await deleteProject(projectId);
+    setProjects(payload.manifest.projects);
+
+    if (selectedProject?.id === projectId) {
+      setSelectedProject(null);
+    }
+
+    return payload.project;
+  }
+
   // Esta funcion cierra sesion y vuelve a bloquear el admin.
   async function handleLogout() {
     await logout();
@@ -62,6 +74,7 @@ export function App() {
         projects={projects}
         onChangePassword={changePassword}
         onCreateProject={handleCreateProject}
+        onDeleteProject={handleDeleteProject}
         onLogout={handleLogout}
         onSelectProject={setSelectedProject}
       />

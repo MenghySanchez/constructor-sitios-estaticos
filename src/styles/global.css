@@ -246,6 +246,12 @@ button:disabled {
   color: var(--cms-ink);
 }
 
+.cms-button--danger {
+  border-color: oklch(0.62 0.19 29);
+  background: oklch(0.97 0.035 29);
+  color: oklch(0.42 0.15 29);
+}
+
 .auth-shell,
 .project-shell {
   min-height: 100vh;
@@ -399,6 +405,13 @@ button:disabled {
   margin-top: 10px;
   overflow-wrap: anywhere;
   color: var(--cms-muted);
+}
+
+.project-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .project-empty {

@@ -221,6 +221,26 @@ function staticBuilderApiPlugin() {
         return { project, manifest: nextManifest }
       }
 
+      // Esta funcion elimina un proyecto, su site.json y sus exports locales.
+      async function deleteProject(projectId) {
+        const manifest = await loadProjectsManifest()
+        const project = manifest.projects.find((item) => item.id === projectId)
+
+        if (!project) throw new Error('Proyecto no encontrado')
+
+        const nextProjects = manifest.projects.filter((item) => item.id !== projectId)
+        const nextManifest = {
+          projects: nextProjects,
+          currentProjectId: manifest.currentProjectId === projectId ? nextProjects[0]?.id || '' : manifest.currentProjectId,
+        }
+
+        await fs.rm(path.join(projectsDir, project.slug), { recursive: true, force: true })
+        await fs.rm(path.join(exportDir, project.slug), { recursive: true, force: true })
+        await saveProjectsManifest(nextManifest)
+
+        return { project, manifest: nextManifest }
+      }
+
       // Esta funcion encuentra un proyecto por id y devuelve error claro si no existe.
       async function findProject(projectId) {
         const manifest = await loadProjectsManifest()
@@ -328,6 +348,17 @@ function staticBuilderApiPlugin() {
           try {
             const body = await readJsonBody(req)
             const payload = await createProject(body.name)
+            sendJson(res, 200, { ok: true, ...payload })
+          } catch (error) {
+            sendJson(res, 400, { ok: false, error: error.message })
+          }
+          return
+        }
+
+        if (requestUrl === '/api/projects' && req.method === 'DELETE') {
+          try {
+            const body = await readJsonBody(req)
+            const payload = await deleteProject(body.projectId)
             sendJson(res, 200, { ok: true, ...payload })
           } catch (error) {
             sendJson(res, 400, { ok: false, error: error.message })

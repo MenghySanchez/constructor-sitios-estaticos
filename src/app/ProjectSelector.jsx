@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 // Esta pantalla aparece antes del builder para mantener cada cliente/proyecto separado.
-export function ProjectSelector({ projects, onChangePassword, onCreateProject, onLogout, onSelectProject }) {
+export function ProjectSelector({ projects, onChangePassword, onCreateProject, onDeleteProject, onLogout, onSelectProject }) {
   const [projectName, setProjectName] = useState("Nuevo proyecto");
   const [passwordDraft, setPasswordDraft] = useState({ currentPassword: "", newPassword: "" });
   const [status, setStatus] = useState("Crea o selecciona un proyecto para continuar.");
@@ -34,6 +34,27 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
       await onChangePassword(passwordDraft.currentPassword, passwordDraft.newPassword);
       setPasswordDraft({ currentPassword: "", newPassword: "" });
       setStatus("Contrasena actualizada. El hash quedo guardado en cms-data/auth.json.");
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Esta funcion confirma y elimina un proyecto para evitar borrados accidentales.
+  async function handleDeleteProject(project) {
+    const confirmed = window.confirm(
+      `Eliminar "${project.name}"? Esta accion borra su carpeta de datos y sus exports locales.`,
+    );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+    setStatus(`Eliminando proyecto: ${project.name}...`);
+
+    try {
+      await onDeleteProject(project.id);
+      setStatus(`Proyecto eliminado: ${project.name}`);
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -110,9 +131,19 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
                   <h2>{project.name}</h2>
                   <small>cms-data/projects/{project.slug}/site.json</small>
                 </div>
-                <button className="cms-button cms-button--secondary" type="button" onClick={() => onSelectProject(project)}>
-                  Abrir builder
-                </button>
+                <div className="project-card__actions">
+                  <button className="cms-button cms-button--secondary" type="button" onClick={() => onSelectProject(project)}>
+                    Abrir builder
+                  </button>
+                  <button
+                    className="cms-button cms-button--danger"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleDeleteProject(project)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </article>
             ))
           )}

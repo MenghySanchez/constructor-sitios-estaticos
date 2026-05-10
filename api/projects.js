@@ -1,4 +1,4 @@
-import { createProject, loadProjectsManifest, readJsonBody, requireAuth, sendJson, sendMethodNotAllowed } from './_lib/cmsApi.js'
+import { createProject, deleteProject, loadProjectsManifest, readJsonBody, requireAuth, sendJson, sendMethodNotAllowed } from './_lib/cmsApi.js'
 
 // /api/projects: lista proyectos o crea uno nuevo.
 export default async function handler(req, res) {
@@ -14,6 +14,17 @@ export default async function handler(req, res) {
     try {
       const body = await readJsonBody(req)
       const payload = await createProject(body.name)
+      sendJson(res, 200, { ok: true, ...payload })
+    } catch (error) {
+      sendJson(res, 400, { ok: false, error: error.message })
+    }
+    return
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      const body = await readJsonBody(req)
+      const payload = await deleteProject(body.projectId)
       sendJson(res, 200, { ok: true, ...payload })
     } catch (error) {
       sendJson(res, 400, { ok: false, error: error.message })

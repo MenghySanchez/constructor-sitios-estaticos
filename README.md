@@ -157,6 +157,13 @@ npm run preview
 
 ## Notas De Version
 
+### Version 0.2.3
+
+- Agregada opcion para eliminar proyectos desde el selector de proyectos.
+- La eliminacion local borra `cms-data/projects/<proyecto>` y `exports/<proyecto>`.
+- Agregada confirmacion antes de borrar para evitar eliminaciones accidentales.
+- Agregado soporte `DELETE /api/projects` en API local y Vercel.
+
 ### Version 0.2.2
 
 - Reemplazado el catch-all de Vercel por API Routes explicitas para auth, proyectos, site y export.
