@@ -866,6 +866,17 @@ a:active {
   font-weight: 900;
 }
 
+.cms-responsive-note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid oklch(0.72 0.145 68 / 0.42);
+  border-radius: 14px;
+  background: oklch(0.72 0.145 68 / 0.12);
+  color: var(--cms-ink);
+  font-size: var(--cms-text-sm);
+  font-weight: 850;
+}
+
 .cms-insertion-target {
   display: grid;
   gap: 3px;

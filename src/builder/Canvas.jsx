@@ -18,6 +18,11 @@ function groupBlocksByColumn(blocks, columnCount) {
   return Array.from({ length: columnCount }, (_, index) => blocks.filter((block) => clampColumn(block.column || 0, columnCount) === index));
 }
 
+function getResponsiveProps(props = {}, viewportMode = "desktop") {
+  if (viewportMode === "desktop") return props;
+  return { ...props, ...(props.responsive?.[viewportMode] || {}) };
+}
+
 function getBackgroundStyle(props = {}) {
   if (props.backgroundType === "image" && props.backgroundImage) {
     return `linear-gradient(oklch(0.18 0.018 74 / 0.12), oklch(0.18 0.018 74 / 0.12)), url("${props.backgroundImage}") center / cover`;
@@ -65,9 +70,10 @@ function getColumnStyle(columnProps = {}) {
   };
 }
 
-function RenderedBlock({ block, site, selectedBlockId, selectedColumn, onDropBlock, onSelectBlock, onSelectColumn }) {
+function RenderedBlock({ block, site, viewportMode, selectedBlockId, selectedColumn, onDropBlock, onSelectBlock, onSelectColumn }) {
   const isSelected = selectedBlockId === block.id;
-  const columnCount = getColumnCount(block);
+  const effectiveBlock = { ...block, props: getResponsiveProps(block.props, viewportMode) };
+  const columnCount = getColumnCount(effectiveBlock);
   const columnGroups = groupBlocksByColumn(block.children || [], columnCount);
 
   function selectCurrentBlock() {
@@ -106,13 +112,18 @@ function RenderedBlock({ block, site, selectedBlockId, selectedColumn, onDropBlo
         }
       }}
     >
-      <ComponentRenderer block={block} site={site}>
+      <ComponentRenderer block={block} site={site} viewportMode={viewportMode}>
         {columnCount
           ? columnGroups.map((columnBlocks, columnIndex) => (
+              (() => {
+                const baseColumnProps = block.props?.columnSettings?.[columnIndex] || {};
+                const columnProps = getResponsiveProps(baseColumnProps, viewportMode);
+
+                return (
               <div
-                className={`cms-builder-column ${selectedColumn?.parentId === block.id && selectedColumn?.index === columnIndex ? "is-selected" : ""} ${block.props?.columnSettings?.[columnIndex]?.cssClass || ""}`}
+                className={`cms-builder-column ${selectedColumn?.parentId === block.id && selectedColumn?.index === columnIndex ? "is-selected" : ""} ${columnProps.cssClass || ""}`}
                 key={`${block.id}-column-${columnIndex}`}
-                style={getColumnStyle(block.props?.columnSettings?.[columnIndex])}
+                style={getColumnStyle(columnProps)}
                 onClick={(event) => {
                   event.stopPropagation();
                   onSelectColumn(block.id, columnIndex);
@@ -135,6 +146,7 @@ function RenderedBlock({ block, site, selectedBlockId, selectedColumn, onDropBlo
                     <RenderedBlock
                       block={childBlock}
                       key={childBlock.id}
+                      viewportMode={viewportMode}
                       selectedBlockId={selectedBlockId}
                       selectedColumn={selectedColumn}
                       site={site}
@@ -147,6 +159,8 @@ function RenderedBlock({ block, site, selectedBlockId, selectedColumn, onDropBlo
                   <div className="cms-builder-column__empty">Arrastra aqui</div>
                 )}
               </div>
+                );
+              })()
             ))
           : null}
       </ComponentRenderer>
@@ -155,7 +169,7 @@ function RenderedBlock({ block, site, selectedBlockId, selectedColumn, onDropBlo
 }
 
 // El canvas recibe drops de la sidebar y pinta los bloques de la zona activa.
-export function Canvas({ blocks, site, viewportWidth, selectedBlockId, selectedColumn, areaLabel, onDropBlock, onSelectBlock, onSelectColumn }) {
+export function Canvas({ blocks, site, viewportWidth, viewportMode, selectedBlockId, selectedColumn, areaLabel, onDropBlock, onSelectBlock, onSelectColumn }) {
   return (
     <main
       aria-label={areaLabel}
@@ -188,6 +202,7 @@ export function Canvas({ blocks, site, viewportWidth, selectedBlockId, selectedC
             <RenderedBlock
               block={block}
               key={block.id}
+              viewportMode={viewportMode}
               selectedBlockId={selectedBlockId}
               selectedColumn={selectedColumn}
               site={site}

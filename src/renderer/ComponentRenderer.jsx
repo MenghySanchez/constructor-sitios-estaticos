@@ -8,6 +8,19 @@ function splitList(value, separator = ",") {
     .filter(Boolean);
 }
 
+function getResponsiveProps(props = {}, viewportMode = "desktop") {
+  if (viewportMode === "desktop") return props;
+  return { ...props, ...(props.responsive?.[viewportMode] || {}) };
+}
+
+function getResponsiveColumnSettings(columnSettings = {}, viewportMode = "desktop") {
+  if (viewportMode === "desktop") return columnSettings;
+
+  return Object.fromEntries(
+    Object.entries(columnSettings).map(([index, settings]) => [index, { ...settings, ...(settings.responsive?.[viewportMode] || {}) }]),
+  );
+}
+
 function toCssNumber(value, fallback) {
   const parsed = Number.parseFloat(value);
   return `${Number.isFinite(parsed) ? parsed : fallback}px`;
@@ -53,11 +66,11 @@ function getBackgroundStyle(props, fallback = {}) {
   return props.background || fallback.background;
 }
 
-function getLayoutStyle(props, fallback = {}) {
+function getLayoutStyle(props, fallback = {}, viewportMode = "desktop") {
   const layout = props.layout || fallback.layout || "grid";
   const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
   const safeColumns = Number.isFinite(columns) ? columns : 1;
-  const columnSettings = props.columnSettings || {};
+  const columnSettings = getResponsiveColumnSettings(props.columnSettings || {}, viewportMode);
   const columnTemplate = Array.from({ length: safeColumns }, (_, index) => columnSettings[index]?.width || "minmax(0, 1fr)").join(" ");
 
   return {
@@ -85,12 +98,12 @@ function findForm(site, formId) {
 
 // Este componente renderiza un bloque dentro del canvas del admin.
 // Es la version React del render estatico que luego se exporta como HTML.
-export function ComponentRenderer({ block, children, site }) {
-  const props = block.props || {};
+export function ComponentRenderer({ block, children, site, viewportMode = "desktop" }) {
+  const props = getResponsiveProps(block.props || {}, viewportMode);
 
   if (block.type === "section") {
     return (
-      <section {...getBlockProps(props, "preview-layout preview-layout--section", getLayoutStyle(props, { gap: 24, paddingBlock: 64, paddingInline: 32, background: "#fffaf0" }))}>
+      <section {...getBlockProps(props, "preview-layout preview-layout--section", getLayoutStyle(props, { gap: 24, paddingBlock: 64, paddingInline: 32, background: "#fffaf0" }, viewportMode))}>
         {children?.length ? children : (
           <>
             <div className="preview-layout__placeholder">
@@ -107,7 +120,7 @@ export function ComponentRenderer({ block, children, site }) {
 
   if (block.type === "container") {
     return (
-      <section {...getBlockProps(props, "preview-layout preview-layout--container", getLayoutStyle(props, { layout: "flex", gap: 16, paddingBlock: 32, paddingInline: 24, background: "#ffffff" }))}>
+      <section {...getBlockProps(props, "preview-layout preview-layout--container", getLayoutStyle(props, { layout: "flex", gap: 16, paddingBlock: 32, paddingInline: 24, background: "#ffffff" }, viewportMode))}>
         {children?.length ? children : (
           <div className="preview-layout__placeholder">
             <p className="preview-kicker">Contenedor</p>
@@ -120,7 +133,7 @@ export function ComponentRenderer({ block, children, site }) {
 
   if (block.type === "innerSection") {
     return (
-      <section {...getBlockProps(props, "preview-layout preview-layout--inner", getLayoutStyle({ ...props, layout: "grid" }, { columns: 2, gap: 18, paddingBlock: 28, paddingInline: 20 }))}>
+      <section {...getBlockProps(props, "preview-layout preview-layout--inner", getLayoutStyle({ ...props, layout: "grid" }, { columns: 2, gap: 18, paddingBlock: 28, paddingInline: 20 }, viewportMode))}>
         {children?.length ? children : Array.from({ length: Number.parseInt(props.columns || "2", 10) || 2 }).map((_, index) => (
           <div className="preview-layout__column" key={index}>{props.title} {index + 1}</div>
         ))}

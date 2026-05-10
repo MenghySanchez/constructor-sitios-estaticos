@@ -29,6 +29,28 @@ const viewportPresets = {
   custom: { label: "Custom", width: 768 },
 };
 
+const responsiveFieldNames = new Set([
+  "layout",
+  "direction",
+  "columns",
+  "gap",
+  "paddingBlock",
+  "paddingInline",
+  "backgroundType",
+  "background",
+  "backgroundImage",
+  "backgroundGradient",
+  "align",
+  "style",
+  "accent",
+  "customCss",
+  "width",
+  "minHeight",
+  "padding",
+  "alignItems",
+  "justifyContent",
+]);
+
 function findBlockById(blocks, blockId) {
   for (const block of blocks) {
     if (block.id === blockId) return block;
@@ -63,6 +85,16 @@ function clampColumn(column, columnCount) {
 
 function groupBlocksByColumn(blocks, columnCount) {
   return Array.from({ length: columnCount }, (_, index) => blocks.filter((block) => clampColumn(block.column || 0, columnCount) === index));
+}
+
+function splitResponsivePatch(patch) {
+  return Object.entries(patch).reduce(
+    (groups, [key, value]) => {
+      const target = responsiveFieldNames.has(key) ? "responsive" : "base";
+      return { ...groups, [target]: { ...groups[target], [key]: value } };
+    },
+    { base: {}, responsive: {} },
+  );
 }
 
 function mapBlocks(blocks, mapper) {
@@ -323,11 +355,27 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   }
 
   function handleUpdateColumn(parentId, columnIndex, patch) {
+    const { base, responsive } = splitResponsivePatch(patch);
+
     updateActiveBlocks(
       mapBlocks(activeBlocks, (block) => {
         if (block.id !== parentId) return block;
         const currentSettings = block.props?.columnSettings || {};
         const currentColumnSettings = currentSettings[columnIndex] || {};
+        const nextColumnSettings =
+          editorViewport.mode === "desktop"
+            ? { ...currentColumnSettings, ...base, ...responsive }
+            : {
+                ...currentColumnSettings,
+                ...base,
+                responsive: {
+                  ...(currentColumnSettings.responsive || {}),
+                  [editorViewport.mode]: {
+                    ...(currentColumnSettings.responsive?.[editorViewport.mode] || {}),
+                    ...responsive,
+                  },
+                },
+              };
 
         return {
           ...block,
@@ -335,7 +383,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
             ...block.props,
             columnSettings: {
               ...currentSettings,
-              [columnIndex]: { ...currentColumnSettings, ...patch },
+              [columnIndex]: nextColumnSettings,
             },
           },
         };
@@ -345,7 +393,32 @@ export function Builder({ project, onBackToProjects, onLogout }) {
 
   // Esta funcion actualiza props del bloque seleccionado desde el inspector.
   function handleUpdateBlock(blockId, patch) {
-    updateActiveBlocks(mapBlocks(activeBlocks, (block) => (block.id === blockId ? { ...block, props: { ...block.props, ...patch } } : block)));
+    const { base, responsive } = splitResponsivePatch(patch);
+
+    updateActiveBlocks(
+      mapBlocks(activeBlocks, (block) => {
+        if (block.id !== blockId) return block;
+
+        if (editorViewport.mode === "desktop") {
+          return { ...block, props: { ...block.props, ...base, ...responsive } };
+        }
+
+        return {
+          ...block,
+          props: {
+            ...block.props,
+            ...base,
+            responsive: {
+              ...(block.props?.responsive || {}),
+              [editorViewport.mode]: {
+                ...(block.props?.responsive?.[editorViewport.mode] || {}),
+                ...responsive,
+              },
+            },
+          },
+        };
+      }),
+    );
   }
 
   // Esta funcion borra un bloque de la zona activa.
@@ -858,6 +931,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                     column={{ ...selectedColumn, props: selectedColumnProps }}
                     parentBlock={selectedColumnParent}
                     site={site}
+                    viewportMode={editorViewport.mode}
                     onBackToLibrary={() => setBuilderPanel("library")}
                     onUpdateColumn={handleUpdateColumn}
                   />
@@ -865,6 +939,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                   <Inspector
                     block={selectedBlock}
                     site={site}
+                    viewportMode={editorViewport.mode}
                     onBackToLibrary={() => setBuilderPanel("library")}
                     onDeleteBlock={handleDeleteBlock}
                     onDuplicateBlock={handleDuplicateBlock}
@@ -884,6 +959,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                   areaLabel={getAreaLabel(activeView, activePage)}
                   blocks={activeBlocks}
                   viewportWidth={viewportWidth}
+                  viewportMode={editorViewport.mode}
                   selectedBlockId={selectedBlockId}
                   selectedColumn={selectedColumn}
                   site={site}

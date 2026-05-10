@@ -21,6 +21,33 @@ const columnFields = [
   { name: "customCss", label: "CSS inline", type: "textarea" },
 ];
 
+const responsiveFieldNames = new Set([
+  "layout",
+  "direction",
+  "columns",
+  "gap",
+  "paddingBlock",
+  "paddingInline",
+  "backgroundType",
+  "background",
+  "backgroundImage",
+  "backgroundGradient",
+  "align",
+  "style",
+  "accent",
+  "customCss",
+  "width",
+  "minHeight",
+  "padding",
+  "alignItems",
+  "justifyContent",
+]);
+
+function getResponsiveValue(props, fieldName, viewportMode) {
+  if (viewportMode === "desktop" || !responsiveFieldNames.has(fieldName)) return props?.[fieldName];
+  return props?.responsive?.[viewportMode]?.[fieldName] ?? props?.[fieldName];
+}
+
 // Este componente pinta el control correcto segun el tipo de campo del bloque.
 function FieldControl({ field, value, site, onChange }) {
   if (field.type === "textarea") {
@@ -80,7 +107,7 @@ function FieldControl({ field, value, site, onChange }) {
 }
 
 // El inspector permite editar props, mover, duplicar o borrar el bloque seleccionado.
-export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock }) {
+export function Inspector({ block, site, viewportMode = "desktop", onBackToLibrary, onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock }) {
   const definition = block ? componentMap[block.type] : null;
 
   if (!block || !definition) {
@@ -106,6 +133,10 @@ export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDelet
         Volver a elementos
       </button>
 
+      {viewportMode !== "desktop" ? (
+        <p className="cms-responsive-note" role="status">Editando overrides responsive: {viewportMode}</p>
+      ) : null}
+
       <div className="cms-inspector__actions">
         <button type="button" onClick={() => onMoveBlock(block.id, -1)}>
           Subir
@@ -128,7 +159,7 @@ export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDelet
             <FieldControl
               field={field}
               site={site}
-              value={block.props?.[field.name]}
+              value={getResponsiveValue(block.props, field.name, viewportMode)}
               onChange={(value) => onUpdateBlock(block.id, { [field.name]: value })}
             />
           </label>
@@ -145,7 +176,7 @@ export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDelet
             <FieldControl
               field={field}
               site={site}
-              value={block.props?.[field.name]}
+              value={getResponsiveValue(block.props, field.name, viewportMode)}
               onChange={(value) => onUpdateBlock(block.id, { [field.name]: value })}
             />
           </label>
@@ -156,7 +187,7 @@ export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDelet
   );
 }
 
-export function ColumnInspector({ column, parentBlock, site, onBackToLibrary, onUpdateColumn }) {
+export function ColumnInspector({ column, parentBlock, site, viewportMode = "desktop", onBackToLibrary, onUpdateColumn }) {
   const parentDefinition = parentBlock ? componentMap[parentBlock.type] : null;
   const columnLabel = `Columna ${column.index + 1}`;
 
@@ -171,6 +202,10 @@ export function ColumnInspector({ column, parentBlock, site, onBackToLibrary, on
         Volver a elementos
       </button>
 
+      {viewportMode !== "desktop" ? (
+        <p className="cms-responsive-note" role="status">Editando overrides responsive: {viewportMode}</p>
+      ) : null}
+
       <p className="cms-muted">Editando columna dentro de {parentDefinition?.label || parentBlock?.type || "contenedor"}.</p>
 
       <div className="cms-field-stack">
@@ -180,7 +215,7 @@ export function ColumnInspector({ column, parentBlock, site, onBackToLibrary, on
             <FieldControl
               field={field}
               site={site}
-              value={column.props?.[field.name]}
+              value={getResponsiveValue(column.props, field.name, viewportMode)}
               onChange={(value) => onUpdateColumn(parentBlock.id, column.index, { [field.name]: value })}
             />
           </label>

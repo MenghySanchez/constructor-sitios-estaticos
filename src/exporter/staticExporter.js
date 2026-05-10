@@ -34,6 +34,8 @@ function buildAttrs(props, baseClass, style = "") {
 
   return [
     props.cssId ? `id="${escapeAttr(props.cssId)}"` : "",
+    props.__blockId ? `data-sb-block="${escapeAttr(props.__blockId)}"` : "",
+    props.__columnId ? `data-sb-column="${escapeAttr(props.__columnId)}"` : "",
     `class="${escapeAttr(classes)}"`,
     styleValue ? `style="${escapeAttr(styleValue)}"` : "",
   ]
@@ -69,6 +71,23 @@ function buildLayoutStyle(props, fallback = {}) {
   if (background) styles.push(`background:${background}`);
 
   return styles.join("; ");
+}
+
+function getResponsiveColumnSettings(columnSettings = {}, mode = "desktop") {
+  if (mode === "desktop") return columnSettings;
+
+  return Object.fromEntries(
+    Object.entries(columnSettings).map(([index, settings]) => [index, { ...settings, ...(settings.responsive?.[mode] || {}) }]),
+  );
+}
+
+function importantDeclarations(style) {
+  return String(style || "")
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .map((declaration) => `${declaration} !important;`)
+    .join(" ");
 }
 
 function buildColumnStyle(props = {}) {
@@ -123,7 +142,7 @@ function clampColumn(column, columnCount) {
 function renderColumnChildren(block, site) {
   const columnCount = getColumnCount(block);
   return Array.from({ length: columnCount }, (_, index) => {
-    const columnProps = block.props?.columnSettings?.[index] || {};
+    const columnProps = { ...(block.props?.columnSettings?.[index] || {}), __columnId: `${block.id}-${index}` };
     const children = (block.children || []).filter((childBlock) => clampColumn(childBlock.column || 0, columnCount) === index);
     const content = renderBlocks(children, site);
     return `<div ${buildAttrs(columnProps, "sb-layout__column", buildColumnStyle(columnProps))}>${content || `Columna ${index + 1}`}</div>`;
@@ -132,7 +151,7 @@ function renderColumnChildren(block, site) {
 
 // Esta funcion renderiza un bloque individual a HTML estatico.
 function renderBlock(block, site) {
-  const props = block.props || {};
+  const props = { ...(block.props || {}), __blockId: block.id };
   const children = renderColumnChildren(block, site);
 
   if (block.type === "section") {
@@ -313,6 +332,77 @@ function renderBlock(block, site) {
 // Esta funcion renderiza una lista de bloques en el mismo orden del builder.
 function renderBlocks(blocks, site) {
   return (blocks || []).map((block) => renderBlock(block, site)).join("\n");
+}
+
+function collectBlocks(blocks = []) {
+  return blocks.flatMap((block) => [block, ...collectBlocks(block.children || [])]);
+}
+
+function buildResponsiveBlockStyle(block, mode) {
+  const responsiveProps = block.props?.responsive?.[mode];
+  if (!responsiveProps) return "";
+
+  const props = {
+    ...block.props,
+    ...responsiveProps,
+    columnSettings: getResponsiveColumnSettings(block.props?.columnSettings || {}, mode),
+  };
+  const styles = [];
+
+  if (["section", "container", "innerSection"].includes(block.type)) {
+    styles.push(buildLayoutStyle(block.type === "innerSection" ? { ...props, layout: "grid" } : props, { gap: 16, paddingBlock: 32, paddingInline: 24 }));
+  }
+
+  if (responsiveProps.align) styles.push(`text-align:${responsiveProps.align}`);
+  if (responsiveProps.accent) styles.push(`--accent:${responsiveProps.accent}`);
+  if (responsiveProps.customCss) styles.push(responsiveProps.customCss);
+
+  return importantDeclarations(styles.filter(Boolean).join("; "));
+}
+
+function buildResponsiveColumnRules(block, mode) {
+  const columnSettings = block.props?.columnSettings || {};
+
+  return Object.entries(columnSettings)
+    .map(([index, settings]) => {
+      const responsiveSettings = settings.responsive?.[mode];
+      if (!responsiveSettings) return "";
+      const style = importantDeclarations(buildColumnStyle({ ...settings, ...responsiveSettings }));
+      return style ? `[data-sb-column="${escapeAttr(`${block.id}-${index}`)}"] { ${style} }` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function buildResponsiveCss(site) {
+  const blocks = [
+    ...collectBlocks(site.shared.headerBlocks),
+    ...collectBlocks(site.shared.navbarBlocks),
+    ...collectBlocks(site.shared.footerBlocks),
+    ...site.pages.flatMap((page) => collectBlocks(page.blocks)),
+  ];
+  const breakpoints = [
+    ["laptop", 1199],
+    ["mobile", 767],
+    ["custom", 768],
+  ];
+
+  return breakpoints
+    .map(([mode, maxWidth]) => {
+      const rules = blocks
+        .map((block) => {
+          const blockStyle = buildResponsiveBlockStyle(block, mode);
+          const blockRule = blockStyle ? `[data-sb-block="${escapeAttr(block.id)}"] { ${blockStyle} }` : "";
+          const columnRules = buildResponsiveColumnRules(block, mode);
+          return [blockRule, columnRules].filter(Boolean).join("\n");
+        })
+        .filter(Boolean)
+        .join("\n");
+
+      return rules ? `@media (max-width: ${maxWidth}px) {\n${rules}\n}` : "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 // Esta funcion contiene el CSS base que acompana a cada landing exportada.
@@ -629,6 +719,8 @@ img { display: block; max-width: 100%; }
   .sb-features__grid { grid-template-columns: 1fr; }
   .sb-footer { flex-direction: column; }
 }
+
+${buildResponsiveCss(site)}
 
 ${site.settings.globalCss || ""}
 `;
