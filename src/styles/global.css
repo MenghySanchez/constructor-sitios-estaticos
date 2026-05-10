@@ -132,6 +132,11 @@ a:active {
   background:
     radial-gradient(circle at 4% 0%, oklch(0.72 0.145 68 / 0.14), transparent 28rem),
     linear-gradient(135deg, var(--cms-bg) 0%, oklch(0.94 0.016 92) 100%);
+  transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cms-shell--nav-collapsed {
+  grid-template-columns: 82px minmax(0, 1fr);
 }
 
 .cms-admin-nav {
@@ -141,13 +146,22 @@ a:active {
   padding: 18px;
   border-right: 1px solid var(--cms-line-soft);
   background: var(--cms-paper-soft);
+  overflow: hidden;
+}
+
+.cms-brand-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
 }
 
 .cms-brand {
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-bottom: 22px;
+  min-width: 0;
 }
 
 .cms-brand > span,
@@ -172,9 +186,45 @@ a:active {
   display: block;
 }
 
+.cms-brand__text {
+  min-width: 0;
+}
+
+.cms-brand strong,
+.cms-brand small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cms-brand small {
   color: var(--cms-muted);
   font-size: var(--cms-text-sm);
+}
+
+.cms-admin-nav__toggle {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--cms-line-soft);
+  border-radius: 14px;
+  background: var(--cms-panel);
+  color: var(--cms-ink);
+}
+
+.cms-admin-nav__toggle:hover {
+  border-color: oklch(0.72 0.145 68 / 0.72);
+  box-shadow: 0 8px 24px oklch(0.34 0.025 74 / 0.08);
+}
+
+.cms-admin-nav__toggle-icon {
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(-45deg);
 }
 
 .cms-admin-nav nav {
@@ -182,7 +232,10 @@ a:active {
   gap: 8px;
 }
 
-.cms-admin-nav button {
+.cms-admin-nav nav button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
   width: 100%;
   min-height: 44px;
   padding: 12px 14px;
@@ -195,12 +248,43 @@ a:active {
   text-align: left;
 }
 
-.cms-admin-nav button:hover,
-.cms-admin-nav button.is-active {
+.cms-admin-nav nav button:hover,
+.cms-admin-nav nav button.is-active {
   border-color: var(--cms-line-soft);
   background: var(--cms-panel);
   color: var(--cms-ink);
   box-shadow: 0 8px 24px oklch(0.34 0.025 74 / 0.08);
+}
+
+.cms-admin-nav__shortcut {
+  display: none;
+  font-size: var(--cms-text-sm);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.cms-shell--nav-collapsed .cms-brand-row {
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.cms-shell--nav-collapsed .cms-brand__text,
+.cms-shell--nav-collapsed .cms-admin-nav__label {
+  display: none;
+}
+
+.cms-shell--nav-collapsed .cms-admin-nav__toggle-icon {
+  transform: rotate(135deg);
+}
+
+.cms-shell--nav-collapsed .cms-admin-nav nav button {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.cms-shell--nav-collapsed .cms-admin-nav__shortcut {
+  display: inline;
 }
 
 .cms-workspace {
@@ -1205,10 +1289,23 @@ a:active {
     position: static;
     height: auto;
     padding: 14px;
+    overflow: visible;
   }
 
-  .cms-brand {
+  .cms-brand-row,
+  .cms-shell--nav-collapsed .cms-brand-row {
+    flex-direction: row;
+    justify-content: space-between;
     margin-bottom: 14px;
+  }
+
+  .cms-shell--nav-collapsed .cms-brand__text,
+  .cms-shell--nav-collapsed .cms-admin-nav__label {
+    display: block;
+  }
+
+  .cms-shell--nav-collapsed .cms-admin-nav__shortcut {
+    display: none;
   }
 
   .cms-admin-nav nav {
@@ -1218,9 +1315,12 @@ a:active {
     padding-bottom: 4px;
   }
 
-  .cms-admin-nav button {
+  .cms-admin-nav nav button,
+  .cms-shell--nav-collapsed .cms-admin-nav nav button {
     flex: 0 0 auto;
     width: auto;
+    justify-content: flex-start;
+    padding: 12px 14px;
   }
 
   .project-side-stack,

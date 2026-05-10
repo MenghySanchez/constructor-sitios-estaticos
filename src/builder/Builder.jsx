@@ -10,15 +10,15 @@ import { Toolbar } from "./Toolbar";
 
 // Esta lista define las secciones principales del admin tipo WordPress.
 const adminViews = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "pages", label: "Paginas" },
-  { id: "builder", label: "Builder" },
-  { id: "header", label: "Header" },
-  { id: "navbar", label: "Navbar" },
-  { id: "footer", label: "Footer" },
-  { id: "head", label: "Head / Tracking" },
-  { id: "media", label: "Biblioteca" },
-  { id: "forms", label: "Formularios" },
+  { id: "dashboard", label: "Dashboard", short: "D" },
+  { id: "pages", label: "Paginas", short: "P" },
+  { id: "builder", label: "Builder", short: "B" },
+  { id: "header", label: "Header", short: "H" },
+  { id: "navbar", label: "Navbar", short: "N" },
+  { id: "footer", label: "Footer", short: "F" },
+  { id: "head", label: "Head / Tracking", short: "HT" },
+  { id: "media", label: "Biblioteca", short: "M" },
+  { id: "forms", label: "Formularios", short: "Fo" },
 ];
 
 // Esta funcion devuelve el nombre legible de la zona editada.
@@ -56,6 +56,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const [status, setStatus] = useState("Cargando datos...");
   const [assetDraft, setAssetDraft] = useState({ name: "", url: "" });
   const [newPageTitle, setNewPageTitle] = useState("Nueva landing");
+  const [isAdminNavCollapsed, setIsAdminNavCollapsed] = useState(false);
   const [preview, setPreview] = useState({ open: false, device: "desktop", srcDoc: "" });
 
   const activePage = site.pages.find((page) => page.id === site.currentPageId) || site.pages[0];
@@ -529,25 +530,39 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   return (
     <>
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
-      <div className="cms-shell">
+      <div className={`cms-shell ${isAdminNavCollapsed ? "cms-shell--nav-collapsed" : ""}`}>
         <aside className="cms-admin-nav">
-          <div className="cms-brand">
-            <span>SB</span>
-            <div>
-              <strong>Static Builder</strong>
-              <small>{project.name}</small>
+          <div className="cms-brand-row">
+            <div className="cms-brand">
+              <span>SB</span>
+              <div className="cms-brand__text">
+                <strong>Static Builder</strong>
+                <small>{project.name}</small>
+              </div>
             </div>
+            <button
+              aria-controls="cms-admin-sections"
+              aria-expanded={!isAdminNavCollapsed}
+              aria-label={isAdminNavCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
+              className="cms-admin-nav__toggle"
+              type="button"
+              onClick={() => setIsAdminNavCollapsed((isCollapsed) => !isCollapsed)}
+            >
+              <span aria-hidden="true" className="cms-admin-nav__toggle-icon" />
+            </button>
           </div>
-          <nav aria-label="Secciones del CMS">
+          <nav aria-label="Secciones del CMS" id="cms-admin-sections">
             {adminViews.map((view) => (
               <button
+                aria-label={view.label}
                 aria-current={activeView === view.id ? "page" : undefined}
                 className={activeView === view.id ? "is-active" : ""}
                 key={view.id}
                 type="button"
                 onClick={() => setActiveView(view.id)}
               >
-                {view.label}
+                <span aria-hidden="true" className="cms-admin-nav__shortcut">{view.short}</span>
+                <span className="cms-admin-nav__label">{view.label}</span>
               </button>
             ))}
           </nav>
