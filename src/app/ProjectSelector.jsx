@@ -58,7 +58,7 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
 
       <section className="project-grid">
         <div className="project-side-stack">
-          <form className="project-create-card" onSubmit={handleCreateProject}>
+          <form className="project-create-card" aria-busy={loading} onSubmit={handleCreateProject}>
             <p className="cms-eyebrow">Nuevo</p>
             <h2>Crear proyecto</h2>
             <label className="cms-field">
@@ -70,7 +70,7 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
             </button>
           </form>
 
-          <form className="project-create-card" onSubmit={handleChangePassword}>
+          <form className="project-create-card" aria-busy={loading} onSubmit={handleChangePassword}>
             <p className="cms-eyebrow">Seguridad</p>
             <h2>Cambiar clave</h2>
             <label className="cms-field">
@@ -92,7 +92,7 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
             <button className="cms-button cms-button--secondary" type="submit" disabled={loading}>
               Guardar nueva clave
             </button>
-            <p className="auth-status">{status}</p>
+            <p className="auth-status" role="status">{status}</p>
           </form>
         </div>
 

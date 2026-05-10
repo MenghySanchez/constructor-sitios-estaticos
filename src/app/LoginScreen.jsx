@@ -36,7 +36,7 @@ export function LoginScreen({ onLogin }) {
           </p>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" aria-busy={loading} onSubmit={handleSubmit}>
           <label className="cms-field">
             <span>Usuario</span>
             <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
@@ -53,7 +53,7 @@ export function LoginScreen({ onLogin }) {
           <button className="cms-button cms-button--primary" type="submit" disabled={loading}>
             Entrar al admin
           </button>
-          <p className="auth-status">{status}</p>
+          <p className="auth-status" role="status">{status}</p>
         </form>
       </section>
     </main>

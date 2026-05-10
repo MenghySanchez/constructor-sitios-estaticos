@@ -20,7 +20,7 @@ export function ComponentRenderer({ block, site }) {
 
   if (block.type === "hero") {
     return (
-      <section className="preview-hero" style={{ "--accent": props.accent || "#f6c453" }}>
+      <section className="preview-hero" style={{ "--accent": props.accent || "oklch(0.72 0.145 68)" }}>
         <div className="preview-hero__copy">
           <p className="preview-kicker">{props.eyebrow}</p>
           <h1>{props.title}</h1>

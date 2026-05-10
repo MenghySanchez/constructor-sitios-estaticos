@@ -412,7 +412,13 @@ export function Builder({ project, onBackToProjects, onLogout }) {
         </div>
         <nav>
           {adminViews.map((view) => (
-            <button className={activeView === view.id ? "is-active" : ""} key={view.id} type="button" onClick={() => setActiveView(view.id)}>
+            <button
+              aria-current={activeView === view.id ? "page" : undefined}
+              className={activeView === view.id ? "is-active" : ""}
+              key={view.id}
+              type="button"
+              onClick={() => setActiveView(view.id)}
+            >
               {view.label}
             </button>
           ))}

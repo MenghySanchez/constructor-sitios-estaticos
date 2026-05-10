@@ -7,7 +7,7 @@ export function Toolbar({ page, project, status, onBackToProjects, onLogout, onS
         <h1>{page?.title || "Sin pagina seleccionada"}</h1>
       </div>
       <div className="cms-toolbar__actions">
-        <span className="cms-status">{status}</span>
+        <span className="cms-status" role="status">{status}</span>
         <button className="cms-button cms-button--ghost" type="button" onClick={onBackToProjects}>
           Proyectos
         </button>

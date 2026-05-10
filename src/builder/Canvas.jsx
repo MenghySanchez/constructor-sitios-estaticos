@@ -4,6 +4,7 @@ import { ComponentRenderer } from "../renderer/ComponentRenderer";
 export function Canvas({ blocks, site, selectedBlockId, areaLabel, onDropBlock, onSelectBlock }) {
   return (
     <main
+      aria-label={areaLabel}
       className="cms-canvas"
       onDragOver={(event) => {
         event.preventDefault();
@@ -31,6 +32,7 @@ export function Canvas({ blocks, site, selectedBlockId, areaLabel, onDropBlock, 
         ) : (
           blocks.map((block) => (
             <button
+              aria-label={`Editar bloque ${block.type}`}
               className={`cms-rendered-block ${selectedBlockId === block.id ? "is-selected" : ""}`}
               key={block.id}
               type="button"
