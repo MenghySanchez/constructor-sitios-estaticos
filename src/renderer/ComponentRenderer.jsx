@@ -8,6 +8,63 @@ function splitList(value, separator = ",") {
     .filter(Boolean);
 }
 
+function toCssNumber(value, fallback) {
+  const parsed = Number.parseFloat(value);
+  return `${Number.isFinite(parsed) ? parsed : fallback}px`;
+}
+
+function toStyleName(property) {
+  if (property.startsWith("--")) return property;
+  return property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function parseCssDeclarations(value) {
+  return String(value || "")
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .reduce((style, declaration) => {
+      const separatorIndex = declaration.indexOf(":");
+      if (separatorIndex < 1) return style;
+
+      const property = declaration.slice(0, separatorIndex).trim();
+      const propertyValue = declaration.slice(separatorIndex + 1).trim();
+      if (!property || !propertyValue) return style;
+
+      return { ...style, [toStyleName(property)]: propertyValue };
+    }, {});
+}
+
+function getBlockProps(props, baseClass, style = {}) {
+  return {
+    id: props.cssId || undefined,
+    className: [baseClass, props.cssClass].filter(Boolean).join(" "),
+    style: { ...style, ...parseCssDeclarations(props.customCss) },
+  };
+}
+
+function getLayoutStyle(props, fallback = {}) {
+  const layout = props.layout || fallback.layout || "grid";
+  const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
+
+  return {
+    display: layout,
+    flexDirection: props.direction || fallback.direction || "column",
+    gridTemplateColumns: layout === "grid" ? `repeat(${Number.isFinite(columns) ? columns : 1}, minmax(0, 1fr))` : undefined,
+    gap: toCssNumber(props.gap, fallback.gap || 16),
+    paddingBlock: toCssNumber(props.paddingBlock, fallback.paddingBlock || 32),
+    paddingInline: toCssNumber(props.paddingInline, fallback.paddingInline || 24),
+    background: props.background || fallback.background,
+  };
+}
+
+function splitParagraphs(value) {
+  return String(value || "")
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 // Esta funcion busca el formulario asociado a un bloque de formulario.
 function findForm(site, formId) {
   return site.forms.find((form) => form.id === formId) || site.forms[0];
@@ -18,9 +75,43 @@ function findForm(site, formId) {
 export function ComponentRenderer({ block, site }) {
   const props = block.props || {};
 
+  if (block.type === "section") {
+    return (
+      <section {...getBlockProps(props, "preview-layout preview-layout--section", getLayoutStyle(props, { gap: 24, paddingBlock: 64, paddingInline: 32, background: "#fffaf0" }))}>
+        <div className="preview-layout__placeholder">
+          <p className="preview-kicker">Seccion</p>
+          <h2>{props.title}</h2>
+          <p>{props.helper}</p>
+        </div>
+        <div className="preview-layout__drop-hint">Agrega elementos debajo o usa esta caja como guia de estructura.</div>
+      </section>
+    );
+  }
+
+  if (block.type === "container") {
+    return (
+      <section {...getBlockProps(props, "preview-layout preview-layout--container", getLayoutStyle(props, { layout: "flex", gap: 16, paddingBlock: 32, paddingInline: 24, background: "#ffffff" }))}>
+        <div className="preview-layout__placeholder">
+          <p className="preview-kicker">Contenedor</p>
+          <h2>{props.label}</h2>
+        </div>
+      </section>
+    );
+  }
+
+  if (block.type === "innerSection") {
+    return (
+      <section {...getBlockProps(props, "preview-layout preview-layout--inner", getLayoutStyle({ ...props, layout: "grid" }, { columns: 2, gap: 18, paddingBlock: 28, paddingInline: 20 }))}>
+        {Array.from({ length: Number.parseInt(props.columns || "2", 10) || 2 }).map((_, index) => (
+          <div className="preview-layout__column" key={index}>{props.title} {index + 1}</div>
+        ))}
+      </section>
+    );
+  }
+
   if (block.type === "hero") {
     return (
-      <section className="preview-hero" style={{ "--accent": props.accent || "oklch(0.72 0.145 68)" }}>
+      <section {...getBlockProps(props, "preview-hero", { "--accent": props.accent || "oklch(0.72 0.145 68)" })}>
         <div className="preview-hero__copy">
           <p className="preview-kicker">{props.eyebrow}</p>
           <h1>{props.title}</h1>
@@ -38,7 +129,7 @@ export function ComponentRenderer({ block, site }) {
 
   if (block.type === "text") {
     return (
-      <section className={`preview-text preview-text--${props.align || "left"}`}>
+      <section {...getBlockProps(props, `preview-text preview-text--${props.align || "left"}`)}>
         <p className="preview-kicker">{props.kicker}</p>
         <h2>{props.title}</h2>
         <p>{props.body}</p>
@@ -46,9 +137,37 @@ export function ComponentRenderer({ block, site }) {
     );
   }
 
+  if (block.type === "heading") {
+    const HeadingTag = ["h1", "h2", "h3", "h4"].includes(props.level) ? props.level : "h2";
+
+    return (
+      <section {...getBlockProps(props, `preview-heading preview-heading--${props.align || "left"}`)}>
+        <HeadingTag>{props.text}</HeadingTag>
+      </section>
+    );
+  }
+
+  if (block.type === "richText") {
+    return (
+      <section {...getBlockProps(props, `preview-rich-text preview-rich-text--${props.align || "left"}`)}>
+        {splitParagraphs(props.body).map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </section>
+    );
+  }
+
+  if (block.type === "link") {
+    return (
+      <section {...getBlockProps(props, `preview-link-row preview-link-row--${props.align || "left"}`)}>
+        <a className="preview-text-link" href={props.url}>{props.label}</a>
+      </section>
+    );
+  }
+
   if (block.type === "image") {
     return (
-      <figure className="preview-image">
+      <figure {...getBlockProps(props, "preview-image")}>
         <img src={props.imageUrl} alt={props.alt} />
         <figcaption>{props.caption}</figcaption>
       </figure>
@@ -57,7 +176,7 @@ export function ComponentRenderer({ block, site }) {
 
   if (block.type === "button") {
     return (
-      <section className="preview-button-row">
+      <section {...getBlockProps(props, "preview-button-row")}>
         <a className={`preview-button preview-button--${props.style || "primary"}`} href={props.url}>
           {props.label}
         </a>
@@ -65,9 +184,31 @@ export function ComponentRenderer({ block, site }) {
     );
   }
 
+  if (block.type === "icon") {
+    return (
+      <section {...getBlockProps(props, "preview-icon-card")}>
+        <span className={`preview-vector-icon preview-vector-icon--${props.icon || "check"} preview-vector-icon--${props.shape || "circle"}`} aria-hidden="true" />
+        <strong>{props.label}</strong>
+      </section>
+    );
+  }
+
+  if (block.type === "iconList") {
+    return (
+      <section {...getBlockProps(props, "preview-icon-list")}>
+        {splitList(props.items, "|").map((item) => (
+          <div key={item}>
+            <span className={`preview-vector-icon preview-vector-icon--${props.icon || "check"}`} aria-hidden="true" />
+            <span>{item}</span>
+          </div>
+        ))}
+      </section>
+    );
+  }
+
   if (block.type === "features") {
     return (
-      <section className="preview-features">
+      <section {...getBlockProps(props, "preview-features")}>
         <h2>{props.title}</h2>
         <div className="preview-features__grid">
           {splitList(props.items, "|").map((item) => (
@@ -83,7 +224,7 @@ export function ComponentRenderer({ block, site }) {
 
   if (block.type === "navbar") {
     return (
-      <nav className="preview-navbar">
+      <nav {...getBlockProps(props, "preview-navbar")}>
         <a className="preview-navbar__brand" href="#top">
           {props.brand}
         </a>
@@ -103,7 +244,7 @@ export function ComponentRenderer({ block, site }) {
 
   if (block.type === "footer") {
     return (
-      <footer className="preview-footer">
+      <footer {...getBlockProps(props, "preview-footer")}>
         <div>
           <h2>{props.title}</h2>
           <p>{props.text}</p>
@@ -123,7 +264,7 @@ export function ComponentRenderer({ block, site }) {
     const form = findForm(site, props.formId);
 
     return (
-      <section className="preview-form-section" id="contacto">
+      <section {...getBlockProps({ cssId: "contacto", ...props }, "preview-form-section")}>
         <div>
           <p className="preview-kicker">Formulario HTMX</p>
           <h2>{props.title}</h2>

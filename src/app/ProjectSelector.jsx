@@ -1,4 +1,16 @@
 import { useState } from "react";
+import { buildStaticPage } from "../exporter/staticExporter";
+import { loadSite } from "../store/builderStore";
+
+function buildProjectPreviewSrcDoc(site) {
+  const pageId = site.currentPageId || site.pages[0]?.id;
+  const output = buildStaticPage(site, pageId);
+  const safeScript = output.files["script.js"].replaceAll("</script", "<\\/script");
+
+  return output.files["index.html"]
+    .replace('<link rel="stylesheet" href="./styles.css">', `<style>${output.files["styles.css"]}</style>`)
+    .replace('<script src="./script.js"></script>', `<script>${safeScript}</script>`);
+}
 
 // Esta pantalla aparece antes del builder para mantener cada cliente/proyecto separado.
 export function ProjectSelector({ projects, onChangePassword, onCreateProject, onDeleteProject, onLogout, onSelectProject }) {
@@ -6,6 +18,7 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
   const [passwordDraft, setPasswordDraft] = useState({ currentPassword: "", newPassword: "" });
   const [status, setStatus] = useState("Crea o selecciona un proyecto para continuar.");
   const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState({ open: false, projectName: "", srcDoc: "" });
 
   // Esta funcion crea la carpeta y site.json inicial del proyecto.
   async function handleCreateProject(event) {
@@ -62,14 +75,33 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
     }
   }
 
+  async function handlePreviewProject(project) {
+    setLoading(true);
+    setStatus(`Preparando vista previa: ${project.name}...`);
+
+    try {
+      const site = await loadSite(project.id);
+      setPreview({ open: true, projectName: project.name, srcDoc: buildProjectPreviewSrcDoc(site) });
+      setStatus(`Vista previa lista: ${project.name}`);
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closePreview() {
+    setPreview({ open: false, projectName: "", srcDoc: "" });
+  }
+
   return (
     <main className="project-shell">
       <section className="project-hero">
         <div>
-          <p className="cms-eyebrow">Proyectos</p>
-          <h1>Organiza varias landings desde el mismo sistema.</h1>
+          <p className="cms-eyebrow">Panel de proyectos</p>
+          <h1>Elige un sitio para previsualizarlo o editarlo.</h1>
           <p>
-            Cada proyecto guarda sus datos en una carpeta propia y publica sus archivos en un directorio separado.
+            El builder solo se abre cuando entras a editar un proyecto. Desde aqui puedes crear, revisar y eliminar sitios.
           </p>
         </div>
         <button className="cms-button cms-button--ghost" type="button" onClick={onLogout}>
@@ -137,8 +169,16 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
                   <small>cms-data/projects/{project.slug}/site.json</small>
                 </div>
                 <div className="project-card__actions">
+                  <button
+                    className="cms-button cms-button--ghost"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handlePreviewProject(project)}
+                  >
+                    Vista previa
+                  </button>
                   <button className="cms-button cms-button--secondary" type="button" onClick={() => onSelectProject(project)}>
-                    Abrir builder
+                    Editar
                   </button>
                   <button
                     className="cms-button cms-button--danger"
@@ -154,6 +194,23 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
           )}
         </div>
       </section>
+
+      {preview.open ? (
+        <section className="preview-modal" aria-label="Vista previa de proyecto" role="dialog" aria-modal="true">
+          <div className="preview-modal__bar">
+            <div>
+              <p className="cms-eyebrow">Vista previa</p>
+              <h2>{preview.projectName}</h2>
+            </div>
+            <button className="cms-button cms-button--ghost" type="button" onClick={closePreview}>
+              Cerrar
+            </button>
+          </div>
+          <div className="preview-modal__stage">
+            <iframe className="preview-modal__frame" sandbox="allow-forms allow-same-origin allow-scripts" srcDoc={preview.srcDoc} title={`Vista previa de ${preview.projectName}`} />
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

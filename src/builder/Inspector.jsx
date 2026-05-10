@@ -1,5 +1,11 @@
 import { componentMap } from "../components-library/registry";
 
+const advancedFields = [
+  { name: "cssId", label: "ID CSS / metricas", type: "text" },
+  { name: "cssClass", label: "Clase CSS", type: "text" },
+  { name: "customCss", label: "CSS inline", type: "textarea" },
+];
+
 // Este componente pinta el control correcto segun el tipo de campo del bloque.
 function FieldControl({ field, value, site, onChange }) {
   if (field.type === "textarea") {
@@ -8,6 +14,10 @@ function FieldControl({ field, value, site, onChange }) {
 
   if (field.type === "color") {
     return <input type="color" value={value || "#f6c453"} onChange={(event) => onChange(event.target.value)} />;
+  }
+
+  if (field.type === "number") {
+    return <input type="number" min="0" value={value || ""} onChange={(event) => onChange(event.target.value)} />;
   }
 
   if (field.type === "select") {
@@ -104,6 +114,24 @@ export function Inspector({ block, site, onUpdateBlock, onDeleteBlock, onDuplica
             />
           </label>
         ))}
+
+        <div className="cms-inspector__section-title">
+          <p className="cms-eyebrow">Avanzado</p>
+          <h3>CSS, ID y clases</h3>
+        </div>
+
+        {advancedFields.map((field) => (
+          <label className="cms-field" key={field.name}>
+            <span>{field.label}</span>
+            <FieldControl
+              field={field}
+              site={site}
+              value={block.props?.[field.name]}
+              onChange={(value) => onUpdateBlock(block.id, { [field.name]: value })}
+            />
+          </label>
+        ))}
+        <p className="cms-muted">CSS inline acepta declaraciones como: padding: 40px; border-radius: 24px;</p>
       </div>
     </aside>
   );

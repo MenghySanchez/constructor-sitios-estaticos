@@ -600,10 +600,14 @@ a:active {
   gap: 14px;
 }
 
+.project-list {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: stretch;
+}
+
 .project-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  align-content: space-between;
   gap: 20px;
   padding: 22px;
 }
@@ -621,7 +625,7 @@ a:active {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .project-empty {
@@ -656,6 +660,19 @@ a:active {
 
 .cms-panel-heading {
   margin-bottom: 16px;
+}
+
+.cms-inspector__section-title {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cms-line-soft);
+}
+
+.cms-inspector__section-title h3 {
+  margin: 0;
+  color: var(--cms-ink);
+  font-size: var(--cms-text-base);
+  letter-spacing: -0.02em;
 }
 
 .cms-block-group {
@@ -1146,6 +1163,151 @@ a:active {
   min-height: 44px;
   box-shadow: 2px 2px 0 var(--cms-ink);
   font-size: var(--cms-text-sm);
+}
+
+.preview-layout {
+  margin: 32px 0;
+  border: 1px dashed oklch(0.62 0.08 250 / 0.5);
+  border-radius: 28px;
+  color: var(--cms-ink);
+}
+
+.preview-layout--container,
+.preview-layout--inner {
+  box-shadow: inset 0 0 0 1px oklch(0.9 0.014 78);
+}
+
+.preview-layout__placeholder h2,
+.preview-heading h1,
+.preview-heading h2,
+.preview-heading h3,
+.preview-heading h4 {
+  margin: 0;
+  color: var(--cms-ink);
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+}
+
+.preview-layout__placeholder p,
+.preview-rich-text p {
+  color: var(--cms-muted);
+  font-size: var(--cms-text-md);
+  line-height: 1.65;
+}
+
+.preview-layout__drop-hint,
+.preview-layout__column {
+  min-height: 96px;
+  padding: 18px;
+  border: 1px dashed var(--cms-line);
+  border-radius: 18px;
+  background: oklch(0.985 0.007 82 / 0.72);
+  color: var(--cms-muted);
+  font-size: var(--cms-text-sm);
+}
+
+.preview-heading,
+.preview-rich-text,
+.preview-link-row,
+.preview-icon-card,
+.preview-icon-list {
+  padding: 24px 0;
+}
+
+.preview-heading--center,
+.preview-rich-text--center,
+.preview-link-row--center {
+  text-align: center;
+}
+
+.preview-heading--right,
+.preview-rich-text--right,
+.preview-link-row--right {
+  text-align: right;
+}
+
+.preview-heading h1 { font-size: var(--cms-title-xl); }
+.preview-heading h2 { font-size: var(--cms-title-lg); }
+.preview-heading h3 { font-size: var(--cms-title-md); }
+.preview-heading h4 { font-size: var(--cms-title-sm); }
+
+.preview-text-link {
+  color: var(--cms-accent-strong);
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.preview-icon-card,
+.preview-icon-list div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.preview-icon-card {
+  min-height: 88px;
+  padding-inline: 18px;
+  border: 1px solid var(--cms-line);
+  border-radius: 22px;
+  background: var(--cms-paper-soft);
+}
+
+.preview-icon-list {
+  display: grid;
+  gap: 12px;
+}
+
+.preview-vector-icon {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--cms-line);
+  border-radius: 50%;
+  background: var(--cms-accent);
+  color: var(--cms-ink);
+}
+
+.preview-vector-icon--square {
+  border-radius: 10px;
+}
+
+.preview-vector-icon::before {
+  content: "";
+  display: block;
+}
+
+.preview-vector-icon--check::before {
+  width: 12px;
+  height: 7px;
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.preview-vector-icon--arrow::before {
+  width: 11px;
+  height: 11px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(45deg) translate(-2px, 2px);
+}
+
+.preview-vector-icon--bolt::before {
+  width: 8px;
+  height: 16px;
+  background: currentColor;
+  clip-path: polygon(54% 0, 100% 0, 62% 42%, 100% 42%, 38% 100%, 48% 54%, 0 54%);
+}
+
+.preview-vector-icon--dot::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .preview-text,

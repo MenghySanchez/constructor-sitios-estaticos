@@ -23,6 +23,52 @@ function splitList(value, separator = ",") {
     .filter(Boolean);
 }
 
+function toCssNumber(value, fallback) {
+  const parsed = Number.parseFloat(value);
+  return `${Number.isFinite(parsed) ? parsed : fallback}px`;
+}
+
+function buildAttrs(props, baseClass, style = "") {
+  const classes = [baseClass, props.cssClass].filter(Boolean).join(" ");
+  const styleValue = [style, props.customCss].filter(Boolean).join("; ");
+
+  return [
+    props.cssId ? `id="${escapeAttr(props.cssId)}"` : "",
+    `class="${escapeAttr(classes)}"`,
+    styleValue ? `style="${escapeAttr(styleValue)}"` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildLayoutStyle(props, fallback = {}) {
+  const layout = props.layout || fallback.layout || "grid";
+  const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
+  const styles = [
+    `display:${layout}`,
+    `gap:${toCssNumber(props.gap, fallback.gap || 16)}`,
+    `padding-block:${toCssNumber(props.paddingBlock, fallback.paddingBlock || 32)}`,
+    `padding-inline:${toCssNumber(props.paddingInline, fallback.paddingInline || 24)}`,
+  ];
+
+  if (layout === "grid") styles.push(`grid-template-columns:repeat(${Number.isFinite(columns) ? columns : 1}, minmax(0, 1fr))`);
+  if (layout === "flex") styles.push(`flex-direction:${props.direction || fallback.direction || "column"}`);
+  if (props.background || fallback.background) styles.push(`background:${props.background || fallback.background}`);
+
+  return styles.join("; ");
+}
+
+function splitParagraphs(value) {
+  return String(value || "")
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function renderIcon(icon = "check", shape = "circle") {
+  return `<span class="sb-vector-icon sb-vector-icon--${escapeAttr(icon)} sb-vector-icon--${escapeAttr(shape)}" aria-hidden="true"></span>`;
+}
+
 // Esta funcion encuentra un formulario reutilizable por id.
 function findForm(site, formId) {
   return site.forms.find((form) => form.id === formId) || site.forms[0];
@@ -32,9 +78,43 @@ function findForm(site, formId) {
 function renderBlock(block, site) {
   const props = block.props || {};
 
+  if (block.type === "section") {
+    return `
+      <section ${buildAttrs(props, "sb-layout sb-layout--section", buildLayoutStyle(props, { gap: 24, paddingBlock: 64, paddingInline: 32, background: "#fffaf0" }))}>
+        <div class="sb-layout__placeholder">
+          <p class="sb-kicker">Seccion</p>
+          <h2>${escapeHtml(props.title)}</h2>
+          <p>${escapeHtml(props.helper)}</p>
+        </div>
+        <div class="sb-layout__drop-hint">Agrega elementos debajo o usa esta caja como guia de estructura.</div>
+      </section>`;
+  }
+
+  if (block.type === "container") {
+    return `
+      <section ${buildAttrs(props, "sb-layout sb-layout--container", buildLayoutStyle(props, { layout: "flex", gap: 16, paddingBlock: 32, paddingInline: 24, background: "#ffffff" }))}>
+        <div class="sb-layout__placeholder">
+          <p class="sb-kicker">Contenedor</p>
+          <h2>${escapeHtml(props.label)}</h2>
+        </div>
+      </section>`;
+  }
+
+  if (block.type === "innerSection") {
+    const columnCount = Number.parseInt(props.columns || "2", 10) || 2;
+    const columns = Array.from({ length: columnCount })
+      .map((_, index) => `<div class="sb-layout__column">${escapeHtml(props.title)} ${index + 1}</div>`)
+      .join("");
+
+    return `
+      <section ${buildAttrs(props, "sb-layout sb-layout--inner", buildLayoutStyle({ ...props, layout: "grid" }, { columns: 2, gap: 18, paddingBlock: 28, paddingInline: 20 }))}>
+        ${columns}
+      </section>`;
+  }
+
   if (block.type === "hero") {
     return `
-      <section class="sb-hero" style="--accent:${escapeAttr(props.accent || "#f6c453")}">
+      <section ${buildAttrs(props, "sb-hero", `--accent:${props.accent || "#f6c453"}`)}>
         <div class="sb-hero__copy">
           <p class="sb-kicker">${escapeHtml(props.eyebrow)}</p>
           <h1>${escapeHtml(props.title)}</h1>
@@ -49,16 +129,41 @@ function renderBlock(block, site) {
 
   if (block.type === "text") {
     return `
-      <section class="sb-text sb-text--${escapeAttr(props.align || "left")}">
+      <section ${buildAttrs(props, `sb-text sb-text--${props.align || "left"}`)}>
         <p class="sb-kicker">${escapeHtml(props.kicker)}</p>
         <h2>${escapeHtml(props.title)}</h2>
         <p>${escapeHtml(props.body)}</p>
       </section>`;
   }
 
+  if (block.type === "heading") {
+    const level = ["h1", "h2", "h3", "h4"].includes(props.level) ? props.level : "h2";
+
+    return `
+      <section ${buildAttrs(props, `sb-heading sb-heading--${props.align || "left"}`)}>
+        <${level}>${escapeHtml(props.text)}</${level}>
+      </section>`;
+  }
+
+  if (block.type === "richText") {
+    const paragraphs = splitParagraphs(props.body).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+
+    return `
+      <section ${buildAttrs(props, `sb-rich-text sb-rich-text--${props.align || "left"}`)}>
+        ${paragraphs}
+      </section>`;
+  }
+
+  if (block.type === "link") {
+    return `
+      <section ${buildAttrs(props, `sb-link-row sb-link-row--${props.align || "left"}`)}>
+        <a class="sb-text-link" href="${escapeAttr(props.url)}">${escapeHtml(props.label)}</a>
+      </section>`;
+  }
+
   if (block.type === "image") {
     return `
-      <figure class="sb-image">
+      <figure ${buildAttrs(props, "sb-image")}>
         <img src="${escapeAttr(props.imageUrl)}" alt="${escapeAttr(props.alt)}" loading="lazy">
         <figcaption>${escapeHtml(props.caption)}</figcaption>
       </figure>`;
@@ -66,8 +171,27 @@ function renderBlock(block, site) {
 
   if (block.type === "button") {
     return `
-      <section class="sb-button-row">
+      <section ${buildAttrs(props, "sb-button-row")}>
         <a class="sb-button sb-button--${escapeAttr(props.style || "primary")}" href="${escapeAttr(props.url)}">${escapeHtml(props.label)}</a>
+      </section>`;
+  }
+
+  if (block.type === "icon") {
+    return `
+      <section ${buildAttrs(props, "sb-icon-card")}>
+        ${renderIcon(props.icon, props.shape)}
+        <strong>${escapeHtml(props.label)}</strong>
+      </section>`;
+  }
+
+  if (block.type === "iconList") {
+    const items = splitList(props.items, "|")
+      .map((item) => `<div>${renderIcon(props.icon)}<span>${escapeHtml(item)}</span></div>`)
+      .join("");
+
+    return `
+      <section ${buildAttrs(props, "sb-icon-list")}>
+        ${items}
       </section>`;
   }
 
@@ -77,7 +201,7 @@ function renderBlock(block, site) {
       .join("");
 
     return `
-      <section class="sb-features">
+      <section ${buildAttrs(props, "sb-features")}>
         <h2>${escapeHtml(props.title)}</h2>
         <div class="sb-features__grid">${cards}</div>
       </section>`;
@@ -87,7 +211,7 @@ function renderBlock(block, site) {
     const links = splitList(props.links).map((item) => `<a href="#${slugify(item)}">${escapeHtml(item)}</a>`).join("");
 
     return `
-      <nav class="sb-navbar">
+      <nav ${buildAttrs(props, "sb-navbar")}>
         <a class="sb-navbar__brand" href="#top">${escapeHtml(props.brand)}</a>
         <div class="sb-navbar__links">${links}</div>
         <a class="sb-button sb-button--small" href="${escapeAttr(props.ctaUrl)}">${escapeHtml(props.ctaLabel)}</a>
@@ -98,7 +222,7 @@ function renderBlock(block, site) {
     const links = splitList(props.links).map((item) => `<a href="#${slugify(item)}">${escapeHtml(item)}</a>`).join("");
 
     return `
-      <footer class="sb-footer">
+      <footer ${buildAttrs(props, "sb-footer")}>
         <div>
           <h2>${escapeHtml(props.title)}</h2>
           <p>${escapeHtml(props.text)}</p>
@@ -120,7 +244,7 @@ function renderBlock(block, site) {
       .join("");
 
     return `
-      <section class="sb-form-section" id="contacto">
+      <section ${buildAttrs({ cssId: "contacto", ...props }, "sb-form-section")}>
         <div>
           <p class="sb-kicker">Formulario HTMX</p>
           <h2>${escapeHtml(props.title)}</h2>
@@ -250,6 +374,129 @@ img { display: block; max-width: 100%; }
 
 .sb-button--small { min-height: 38px; box-shadow: 2px 2px 0 var(--ink); font-size: 14px; }
 
+.sb-layout {
+  margin: 44px 0;
+  border: 1px dashed rgba(22, 20, 15, 0.22);
+  border-radius: 32px;
+}
+
+.sb-layout__placeholder h2,
+.sb-heading h1,
+.sb-heading h2,
+.sb-heading h3,
+.sb-heading h4 {
+  margin: 0;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+}
+
+.sb-layout__placeholder p,
+.sb-rich-text p {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.sb-layout__drop-hint,
+.sb-layout__column {
+  min-height: 96px;
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
+}
+
+.sb-heading,
+.sb-rich-text,
+.sb-link-row,
+.sb-icon-card,
+.sb-icon-list { padding: 28px 0; }
+
+.sb-heading--center,
+.sb-rich-text--center,
+.sb-link-row--center { text-align: center; }
+
+.sb-heading--right,
+.sb-rich-text--right,
+.sb-link-row--right { text-align: right; }
+
+.sb-heading h1 { font-size: clamp(48px, 8vw, 104px); }
+.sb-heading h2 { font-size: clamp(38px, 5vw, 70px); }
+.sb-heading h3 { font-size: clamp(28px, 4vw, 44px); }
+.sb-heading h4 { font-size: clamp(22px, 3vw, 30px); }
+
+.sb-text-link {
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.sb-icon-card,
+.sb-icon-list div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sb-icon-card {
+  min-height: 88px;
+  padding-inline: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.sb-icon-list { display: grid; gap: 12px; }
+
+.sb-vector-icon {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.sb-vector-icon--square { border-radius: 10px; }
+
+.sb-vector-icon::before { content: ""; display: block; }
+
+.sb-vector-icon--check::before {
+  width: 12px;
+  height: 7px;
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.sb-vector-icon--arrow::before {
+  width: 11px;
+  height: 11px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(45deg) translate(-2px, 2px);
+}
+
+.sb-vector-icon--bolt::before {
+  width: 8px;
+  height: 16px;
+  background: currentColor;
+  clip-path: polygon(54% 0, 100% 0, 62% 42%, 100% 42%, 38% 100%, 48% 54%, 0 54%);
+}
+
+.sb-vector-icon--dot::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .sb-text { max-width: 760px; padding: 72px 0; }
 
 .sb-text--center { margin: 0 auto; text-align: center; }
@@ -329,7 +576,7 @@ img { display: block; max-width: 100%; }
 @media (max-width: 820px) {
   .sb-navbar { border-radius: 24px; align-items: flex-start; flex-direction: column; }
   .sb-navbar__links { flex-wrap: wrap; }
-  .sb-hero, .sb-form-section { grid-template-columns: 1fr; min-height: auto; }
+  .sb-hero, .sb-form-section, .sb-layout { grid-template-columns: 1fr !important; min-height: auto; }
   .sb-features__grid { grid-template-columns: 1fr; }
   .sb-footer { flex-direction: column; }
 }
