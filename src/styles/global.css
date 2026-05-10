@@ -31,11 +31,18 @@ body,
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
   background: var(--cms-bg);
   color: var(--cms-ink);
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -47,6 +54,7 @@ select {
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button,
@@ -67,14 +75,38 @@ button:disabled {
   opacity: 0.58;
 }
 
+button:active:not(:disabled),
+a:active {
+  transform: translateY(1px);
+}
+
 :focus-visible {
   outline: none;
   box-shadow: var(--cms-focus);
 }
 
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  padding: 10px 14px;
+  border: 1px solid oklch(0.36 0.026 74);
+  border-radius: 999px;
+  background: var(--cms-paper);
+  color: var(--cms-ink);
+  font-weight: 900;
+  text-decoration: none;
+  transform: translateY(-150%);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
 .app-loading {
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   background: var(--cms-bg);
   color: var(--cms-ink);
@@ -85,7 +117,7 @@ button:disabled {
 .cms-shell {
   display: grid;
   grid-template-columns: minmax(220px, 248px) minmax(0, 1fr);
-  min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(circle at 4% 0%, oklch(0.72 0.145 68 / 0.14), transparent 28rem),
     linear-gradient(135deg, var(--cms-bg) 0%, oklch(0.94 0.016 92) 100%);
@@ -94,7 +126,7 @@ button:disabled {
 .cms-admin-nav {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   padding: 18px;
   border-right: 1px solid var(--cms-line-soft);
   background: var(--cms-paper-soft);
@@ -140,6 +172,7 @@ button:disabled {
 
 .cms-admin-nav button {
   width: 100%;
+  min-height: 44px;
   padding: 12px 14px;
   border: 1px solid transparent;
   border-radius: 14px;
@@ -159,6 +192,10 @@ button:disabled {
 .cms-workspace {
   min-width: 0;
   padding: clamp(14px, 2vw, 22px);
+}
+
+.cms-workspace:focus {
+  outline: none;
 }
 
 .cms-toolbar {
@@ -213,7 +250,7 @@ button:disabled {
 }
 
 .cms-button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 16px;
   border: 1px solid oklch(0.36 0.026 74);
   border-radius: 999px;
@@ -325,7 +362,7 @@ button:disabled {
 
 .auth-shell,
 .project-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 24px;
   background:
     radial-gradient(circle at 15% 10%, oklch(0.72 0.145 68 / 0.18), transparent 28rem),
@@ -648,7 +685,7 @@ button:disabled {
 }
 
 .cms-inspector__actions button {
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid var(--cms-line-soft);
   border-radius: 12px;
   background: var(--cms-panel-2);
@@ -656,6 +693,7 @@ button:disabled {
 }
 
 .cms-field,
+.cms-compact-field,
 .cms-page-row > div,
 .cms-form-card__head,
 .cms-field-row {
@@ -663,15 +701,28 @@ button:disabled {
   gap: 10px;
 }
 
-.cms-field span {
+.cms-field span,
+.cms-compact-field span {
   color: var(--cms-ink);
   font-size: 13px;
   font-weight: 800;
 }
 
+.cms-compact-field {
+  min-width: min(100%, 170px);
+  gap: 6px;
+}
+
+.cms-compact-field--wide {
+  min-width: min(100%, 280px);
+}
+
 .cms-field input,
 .cms-field textarea,
 .cms-field select,
+.cms-compact-field input,
+.cms-compact-field textarea,
+.cms-compact-field select,
 .cms-inline-form input,
 .cms-page-row input,
 .cms-page-row textarea,
@@ -687,16 +738,20 @@ button:disabled {
 
 .cms-field input,
 .cms-field select,
+.cms-compact-field input,
+.cms-compact-field select,
 .cms-inline-form input,
 .cms-page-row input,
 .cms-form-card input,
 .cms-form-card select {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
 }
 
 .cms-field textarea,
+.cms-compact-field textarea,
 .cms-page-row textarea {
+  min-height: 88px;
   padding: 12px;
   resize: vertical;
 }
@@ -704,6 +759,9 @@ button:disabled {
 .cms-field input:focus,
 .cms-field textarea:focus,
 .cms-field select:focus,
+.cms-compact-field input:focus,
+.cms-compact-field textarea:focus,
+.cms-compact-field select:focus,
 .cms-inline-form input:focus,
 .cms-page-row input:focus,
 .cms-page-row textarea:focus,
@@ -728,6 +786,10 @@ button:disabled {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.cms-inline-form .cms-compact-field {
+  flex: 1 1 190px;
 }
 
 .cms-dashboard {
@@ -834,7 +896,16 @@ button:disabled {
   display: flex;
   gap: 6px;
   align-items: center;
+  min-height: 44px;
   font-size: 13px;
+}
+
+.cms-check input {
+  width: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--cms-accent-strong);
 }
 
 .preview-navbar {
@@ -961,7 +1032,7 @@ button:disabled {
 }
 
 .preview-button--small {
-  min-height: 34px;
+  min-height: 44px;
   box-shadow: 2px 2px 0 var(--cms-ink);
   font-size: 13px;
 }
@@ -1056,7 +1127,7 @@ button:disabled {
 }
 
 .preview-form input {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--cms-line);
   border-radius: 12px;
@@ -1149,7 +1220,9 @@ button:disabled {
   }
 
   .cms-inline-form,
-  .cms-toolbar__actions {
+  .cms-toolbar__actions,
+  .project-card__actions,
+  .preview-modal__actions {
     width: 100%;
   }
 
@@ -1159,6 +1232,11 @@ button:disabled {
 
   .cms-toolbar__actions {
     justify-content: stretch;
+  }
+
+  .project-card__actions .cms-button,
+  .preview-modal__actions .cms-button {
+    flex: 1 1 150px;
   }
 
   .cms-toolbar__actions .cms-button,
@@ -1171,7 +1249,8 @@ button:disabled {
   }
 
   .cms-inline-form .cms-button,
-  .cms-inline-form input {
+  .cms-inline-form input,
+  .cms-inline-form .cms-compact-field {
     width: 100%;
   }
 }
@@ -1225,6 +1304,22 @@ button:disabled {
   .preview-features,
   .preview-form-section {
     padding: 32px 0;
+  }
+
+  .preview-modal {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .preview-modal__bar {
+    align-items: flex-start;
+    flex-direction: column;
+    border-radius: 18px;
+  }
+
+  .preview-modal__frame,
+  .preview-modal__stage--mobile .preview-modal__frame {
+    min-height: min(560px, 72dvh);
   }
 }
 

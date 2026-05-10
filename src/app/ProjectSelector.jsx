@@ -84,7 +84,7 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
             <h2>Crear proyecto</h2>
             <label className="cms-field">
               <span>Nombre del proyecto</span>
-              <input value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+              <input value={projectName} onChange={(event) => setProjectName(event.target.value)} required />
             </label>
             <button className="cms-button cms-button--primary" type="submit" disabled={loading}>
               Crear carpeta del proyecto
@@ -100,6 +100,8 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
                 type="password"
                 value={passwordDraft.currentPassword}
                 onChange={(event) => setPasswordDraft({ ...passwordDraft, currentPassword: event.target.value })}
+                autoComplete="current-password"
+                required
               />
             </label>
             <label className="cms-field">
@@ -108,6 +110,9 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
                 type="password"
                 value={passwordDraft.newPassword}
                 onChange={(event) => setPasswordDraft({ ...passwordDraft, newPassword: event.target.value })}
+                autoComplete="new-password"
+                minLength={8}
+                required
               />
             </label>
             <button className="cms-button cms-button--secondary" type="submit" disabled={loading}>

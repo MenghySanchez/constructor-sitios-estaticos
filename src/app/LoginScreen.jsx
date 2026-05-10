@@ -36,10 +36,10 @@ export function LoginScreen({ onLogin }) {
           </p>
         </div>
 
-        <form className="auth-form" aria-busy={loading} onSubmit={handleSubmit}>
+        <form className="auth-form" aria-busy={loading} aria-describedby="auth-status" onSubmit={handleSubmit}>
           <label className="cms-field">
             <span>Usuario</span>
-            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
+            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required />
           </label>
           <label className="cms-field">
             <span>Contrasena</span>
@@ -48,12 +48,13 @@ export function LoginScreen({ onLogin }) {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
+              required
             />
           </label>
           <button className="cms-button cms-button--primary" type="submit" disabled={loading}>
-            Entrar al admin
+            {loading ? "Validando..." : "Entrar al admin"}
           </button>
-          <p className="auth-status" role="status">{status}</p>
+          <p className="auth-status" id="auth-status" role="status">{status}</p>
         </form>
       </section>
     </main>

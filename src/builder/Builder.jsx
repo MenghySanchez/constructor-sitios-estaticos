@@ -83,6 +83,20 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     };
   }, [project.id, project.slug]);
 
+  useEffect(() => {
+    if (!preview.open) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setPreview({ open: false, device: "desktop", srcDoc: "" });
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [preview.open]);
+
   // Esta funcion reemplaza los bloques de la zona activa sin tocar otras secciones.
   function updateActiveBlocks(nextBlocks) {
     setSite((currentSite) => {
@@ -202,6 +216,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
           </div>
           <div className="preview-modal__actions">
             <button
+              aria-pressed={preview.device === "desktop"}
               className={`cms-button ${preview.device === "desktop" ? "cms-button--primary" : "cms-button--secondary"}`}
               type="button"
               onClick={() => setPreview((currentPreview) => ({ ...currentPreview, device: "desktop" }))}
@@ -209,6 +224,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
               Desktop
             </button>
             <button
+              aria-pressed={preview.device === "mobile"}
               className={`cms-button ${preview.device === "mobile" ? "cms-button--primary" : "cms-button--secondary"}`}
               type="button"
               onClick={() => setPreview((currentPreview) => ({ ...currentPreview, device: "mobile" }))}
@@ -333,7 +349,10 @@ export function Builder({ project, onBackToProjects, onLogout }) {
             <h2>Landings del sitio</h2>
           </div>
           <div className="cms-inline-form">
-            <input value={newPageTitle} onChange={(event) => setNewPageTitle(event.target.value)} />
+            <label className="cms-compact-field">
+              <span>Titulo nuevo</span>
+              <input value={newPageTitle} onChange={(event) => setNewPageTitle(event.target.value)} />
+            </label>
             <button className="cms-button cms-button--primary" type="button" onClick={handleCreatePage}>Crear</button>
           </div>
         </div>
@@ -342,9 +361,18 @@ export function Builder({ project, onBackToProjects, onLogout }) {
           {site.pages.map((page) => (
             <article className="cms-page-row" key={page.id}>
               <div>
-                <input value={page.title} onChange={(event) => updatePage(page.id, { title: event.target.value })} />
-                <input value={page.slug} onChange={(event) => updatePage(page.id, { slug: slugify(event.target.value) })} />
-                <textarea value={page.description || ""} onChange={(event) => updatePage(page.id, { description: event.target.value })} rows={2} />
+                <label className="cms-compact-field">
+                  <span>Titulo</span>
+                  <input value={page.title} onChange={(event) => updatePage(page.id, { title: event.target.value })} />
+                </label>
+                <label className="cms-compact-field">
+                  <span>Slug</span>
+                  <input value={page.slug} onChange={(event) => updatePage(page.id, { slug: slugify(event.target.value) })} />
+                </label>
+                <label className="cms-compact-field">
+                  <span>Descripcion SEO</span>
+                  <textarea value={page.description || ""} onChange={(event) => updatePage(page.id, { description: event.target.value })} rows={2} />
+                </label>
               </div>
               <button className="cms-button cms-button--secondary" type="button" onClick={() => selectPage(page.id)}>Editar</button>
             </article>
@@ -388,8 +416,14 @@ export function Builder({ project, onBackToProjects, onLogout }) {
             <h2>Imagenes y archivos</h2>
           </div>
           <div className="cms-inline-form">
-            <input placeholder="Nombre" value={assetDraft.name} onChange={(event) => setAssetDraft({ ...assetDraft, name: event.target.value })} />
-            <input placeholder="URL" value={assetDraft.url} onChange={(event) => setAssetDraft({ ...assetDraft, url: event.target.value })} />
+            <label className="cms-compact-field">
+              <span>Nombre</span>
+              <input value={assetDraft.name} onChange={(event) => setAssetDraft({ ...assetDraft, name: event.target.value })} />
+            </label>
+            <label className="cms-compact-field cms-compact-field--wide">
+              <span>URL del archivo</span>
+              <input type="url" value={assetDraft.url} onChange={(event) => setAssetDraft({ ...assetDraft, url: event.target.value })} />
+            </label>
             <button className="cms-button cms-button--primary" type="button" onClick={handleAddAsset}>Agregar</button>
           </div>
         </div>
@@ -428,21 +462,39 @@ export function Builder({ project, onBackToProjects, onLogout }) {
           {site.forms.map((form) => (
             <article className="cms-form-card" key={form.id}>
               <div className="cms-form-card__head">
-                <input value={form.name} onChange={(event) => updateForm(form.id, { name: event.target.value })} />
-                <input value={form.hxPost} onChange={(event) => updateForm(form.id, { hxPost: event.target.value })} />
-                <input value={form.submitLabel} onChange={(event) => updateForm(form.id, { submitLabel: event.target.value })} />
+                <label className="cms-compact-field">
+                  <span>Nombre</span>
+                  <input value={form.name} onChange={(event) => updateForm(form.id, { name: event.target.value })} />
+                </label>
+                <label className="cms-compact-field">
+                  <span>Endpoint</span>
+                  <input value={form.hxPost} onChange={(event) => updateForm(form.id, { hxPost: event.target.value })} />
+                </label>
+                <label className="cms-compact-field">
+                  <span>Boton</span>
+                  <input value={form.submitLabel} onChange={(event) => updateForm(form.id, { submitLabel: event.target.value })} />
+                </label>
               </div>
               <div className="cms-field-list">
                 {form.fields.map((field) => (
                   <div className="cms-field-row" key={field.id}>
-                    <input value={field.label} onChange={(event) => updateFormField(form.id, field.id, { label: event.target.value })} />
-                    <input value={field.name} onChange={(event) => updateFormField(form.id, field.id, { name: event.target.value })} />
-                    <select value={field.type} onChange={(event) => updateFormField(form.id, field.id, { type: event.target.value })}>
-                      <option value="text">text</option>
-                      <option value="email">email</option>
-                      <option value="tel">tel</option>
-                      <option value="number">number</option>
-                    </select>
+                    <label className="cms-compact-field">
+                      <span>Etiqueta</span>
+                      <input value={field.label} onChange={(event) => updateFormField(form.id, field.id, { label: event.target.value })} />
+                    </label>
+                    <label className="cms-compact-field">
+                      <span>Name</span>
+                      <input value={field.name} onChange={(event) => updateFormField(form.id, field.id, { name: event.target.value })} />
+                    </label>
+                    <label className="cms-compact-field">
+                      <span>Tipo</span>
+                      <select value={field.type} onChange={(event) => updateFormField(form.id, field.id, { type: event.target.value })}>
+                        <option value="text">text</option>
+                        <option value="email">email</option>
+                        <option value="tel">tel</option>
+                        <option value="number">number</option>
+                      </select>
+                    </label>
                     <label className="cms-check">
                       <input type="checkbox" checked={field.required} onChange={(event) => updateFormField(form.id, field.id, { required: event.target.checked })} />
                       requerido
@@ -475,82 +527,85 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   }
 
   return (
-    <div className="cms-shell">
-      <aside className="cms-admin-nav">
-        <div className="cms-brand">
-          <span>SB</span>
-          <div>
-            <strong>Static Builder</strong>
-          <small>{project.name}</small>
-          </div>
-        </div>
-        <nav>
-          {adminViews.map((view) => (
-            <button
-              aria-current={activeView === view.id ? "page" : undefined}
-              className={activeView === view.id ? "is-active" : ""}
-              key={view.id}
-              type="button"
-              onClick={() => setActiveView(view.id)}
-            >
-              {view.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      <section className="cms-workspace">
-        {isBuilderView ? (
-          <>
-            <Toolbar
-              page={activePage}
-              project={project}
-              status={status}
-              onBackToProjects={onBackToProjects}
-              onExport={handleExport}
-              onLogout={onLogout}
-              onOpenPages={() => setActiveView("pages")}
-              onPreview={handlePreview}
-              onSave={handleSave}
-            />
-            <div className="cms-builder-grid">
-              <Sidebar onAddBlock={handleAddBlock} />
-              <Canvas
-                areaLabel={getAreaLabel(activeView, activePage)}
-                blocks={activeBlocks}
-                selectedBlockId={selectedBlockId}
-                site={site}
-                onDropBlock={handleAddBlock}
-                onSelectBlock={setSelectedBlockId}
-              />
-              <Inspector
-                block={selectedBlock}
-                site={site}
-                onDeleteBlock={handleDeleteBlock}
-                onDuplicateBlock={handleDuplicateBlock}
-                onMoveBlock={handleMoveBlock}
-                onUpdateBlock={handleUpdateBlock}
-              />
+    <>
+      <a className="skip-link" href="#main-content">Saltar al contenido</a>
+      <div className="cms-shell">
+        <aside className="cms-admin-nav">
+          <div className="cms-brand">
+            <span>SB</span>
+            <div>
+              <strong>Static Builder</strong>
+              <small>{project.name}</small>
             </div>
-          </>
-        ) : (
-          <>
-            <Toolbar
-              page={activePage}
-              project={project}
-              status={status}
-              onBackToProjects={onBackToProjects}
-              onExport={handleExport}
-              onLogout={onLogout}
-              onOpenPages={() => setActiveView("pages")}
-              onPreview={handlePreview}
-              onSave={handleSave}
-            />
-            {renderActiveView()}
-          </>
-        )}
-      </section>
-      {renderPreviewModal()}
-    </div>
+          </div>
+          <nav aria-label="Secciones del CMS">
+            {adminViews.map((view) => (
+              <button
+                aria-current={activeView === view.id ? "page" : undefined}
+                className={activeView === view.id ? "is-active" : ""}
+                key={view.id}
+                type="button"
+                onClick={() => setActiveView(view.id)}
+              >
+                {view.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <section className="cms-workspace" id="main-content" tabIndex={-1}>
+          {isBuilderView ? (
+            <>
+              <Toolbar
+                page={activePage}
+                project={project}
+                status={status}
+                onBackToProjects={onBackToProjects}
+                onExport={handleExport}
+                onLogout={onLogout}
+                onOpenPages={() => setActiveView("pages")}
+                onPreview={handlePreview}
+                onSave={handleSave}
+              />
+              <div className="cms-builder-grid">
+                <Sidebar onAddBlock={handleAddBlock} />
+                <Canvas
+                  areaLabel={getAreaLabel(activeView, activePage)}
+                  blocks={activeBlocks}
+                  selectedBlockId={selectedBlockId}
+                  site={site}
+                  onDropBlock={handleAddBlock}
+                  onSelectBlock={setSelectedBlockId}
+                />
+                <Inspector
+                  block={selectedBlock}
+                  site={site}
+                  onDeleteBlock={handleDeleteBlock}
+                  onDuplicateBlock={handleDuplicateBlock}
+                  onMoveBlock={handleMoveBlock}
+                  onUpdateBlock={handleUpdateBlock}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <Toolbar
+                page={activePage}
+                project={project}
+                status={status}
+                onBackToProjects={onBackToProjects}
+                onExport={handleExport}
+                onLogout={onLogout}
+                onOpenPages={() => setActiveView("pages")}
+                onPreview={handlePreview}
+                onSave={handleSave}
+              />
+              {renderActiveView()}
+            </>
+          )}
+        </section>
+        {renderPreviewModal()}
+      </div>
+    </>
   );
 }
