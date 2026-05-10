@@ -1,7 +1,7 @@
 import { groupComponents } from "../components-library/registry";
 
 // La sidebar muestra la biblioteca de bloques que se pueden arrastrar al canvas.
-export function Sidebar({ onAddBlock }) {
+export function Sidebar({ insertionTargetLabel, onAddBlock }) {
   const groups = groupComponents();
 
   return (
@@ -10,6 +10,13 @@ export function Sidebar({ onAddBlock }) {
         <p className="cms-eyebrow">Biblioteca</p>
         <h2>Bloques</h2>
       </div>
+
+      {insertionTargetLabel ? (
+        <div className="cms-insertion-target" role="status">
+          <span>Insertando dentro de</span>
+          <strong>{insertionTargetLabel}</strong>
+        </div>
+      ) : null}
 
       {Object.entries(groups).map(([groupName, components]) => (
         <section className="cms-block-group" key={groupName}>

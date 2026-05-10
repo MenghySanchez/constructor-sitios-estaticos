@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createId, slugify } from "../cms/siteDefaults";
-import { createBlock } from "../components-library/registry";
+import { componentMap, createBlock } from "../components-library/registry";
 import { buildStaticPage } from "../exporter/staticExporter";
 import { createAsset, createDefaultSite, createField, createForm, createPage, exportPage, loadSite, saveSite } from "../store/builderStore";
 import { Canvas } from "./Canvas";
@@ -88,6 +88,51 @@ function moveBlockById(blocks, blockId, direction) {
   return blocks.map((block) => ({ ...block, children: moveBlockById(block.children || [], blockId, direction) }));
 }
 
+function getBlockLabel(block) {
+  return componentMap[block.type]?.label || block.type;
+}
+
+function StructureBranch({ blocks, selectedBlockId, onSelectBlock }) {
+  if (!blocks.length) return <p className="cms-structure-empty">Sin elementos todavia.</p>;
+
+  return (
+    <ol className="cms-structure-list">
+      {blocks.map((block) => {
+        const children = block.children || [];
+        const isInnerSection = block.type === "innerSection";
+        const columnCount = isInnerSection ? Number.parseInt(block.props?.columns || "2", 10) || 2 : 0;
+
+        return (
+          <li key={block.id}>
+            <button
+              aria-current={selectedBlockId === block.id ? "true" : undefined}
+              className={selectedBlockId === block.id ? "is-active" : ""}
+              type="button"
+              onClick={() => onSelectBlock(block.id)}
+            >
+              <span aria-hidden="true" />
+              {getBlockLabel(block)}
+            </button>
+
+            {isInnerSection ? (
+              <ol className="cms-structure-list cms-structure-list--columns">
+                {Array.from({ length: columnCount }).map((_, index) => (
+                  <li key={`${block.id}-column-${index}`}>
+                    <div className="cms-structure-column"><span aria-hidden="true" />Columna {index + 1}</div>
+                    {index === 0 ? <StructureBranch blocks={children} selectedBlockId={selectedBlockId} onSelectBlock={onSelectBlock} /> : null}
+                  </li>
+                ))}
+              </ol>
+            ) : children.length ? (
+              <StructureBranch blocks={children} selectedBlockId={selectedBlockId} onSelectBlock={onSelectBlock} />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 // Esta funcion devuelve el nombre legible de la zona editada.
 function getAreaLabel(activeView, activePage) {
   if (activeView === "header") return "Seccion global: Header";
@@ -124,12 +169,15 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const [assetDraft, setAssetDraft] = useState({ name: "", url: "" });
   const [newPageTitle, setNewPageTitle] = useState("Nueva landing");
   const [isAdminNavCollapsed, setIsAdminNavCollapsed] = useState(false);
+  const [builderPanel, setBuilderPanel] = useState("library");
+  const [structureOpen, setStructureOpen] = useState(false);
   const [preview, setPreview] = useState({ open: false, device: "desktop", srcDoc: "" });
 
   const activePage = site.pages.find((page) => page.id === site.currentPageId) || site.pages[0];
   const activeBlocks = getActiveBlocks(site, activeView, activePage);
   const selectedBlock = findBlockById(activeBlocks, selectedBlockId);
   const isBuilderView = ["builder", "header", "navbar", "footer"].includes(activeView);
+  const insertionTargetLabel = parentBlockTypes.has(selectedBlock?.type) ? getBlockLabel(selectedBlock) : "";
 
   // Al montar el admin, se carga el site.json del proyecto seleccionado.
   useEffect(() => {
@@ -193,7 +241,13 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     const targetParentId = parentId || (parentBlockTypes.has(selectedBlock?.type) ? selectedBlock.id : "");
     updateActiveBlocks(addBlockToParent(activeBlocks, targetParentId, block));
     setSelectedBlockId(block.id);
+    setBuilderPanel("settings");
     setStatus(targetParentId ? `Bloque agregado dentro de contenedor: ${type}` : `Bloque agregado: ${type}`);
+  }
+
+  function handleSelectBlock(blockId) {
+    setSelectedBlockId(blockId);
+    setBuilderPanel("settings");
   }
 
   // Esta funcion actualiza props del bloque seleccionado desde el inspector.
@@ -205,6 +259,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   function handleDeleteBlock(blockId) {
     updateActiveBlocks(removeBlockById(activeBlocks, blockId));
     setSelectedBlockId("");
+    setBuilderPanel("library");
   }
 
   // Esta funcion duplica un bloque conservando sus props.
@@ -318,6 +373,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     setNewPageTitle("Nueva landing");
     setActiveView("builder");
     setSelectedBlockId("");
+    setBuilderPanel("library");
   }
 
   // Esta funcion actualiza metadatos de una pagina.
@@ -333,6 +389,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     setSite((currentSite) => ({ ...currentSite, currentPageId: pageId }));
     setActiveView("builder");
     setSelectedBlockId("");
+    setBuilderPanel("library");
   }
 
   // Esta funcion agrega una URL externa a la biblioteca de medios.
@@ -584,6 +641,25 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     return null;
   }
 
+  function renderStructurePanel() {
+    if (!structureOpen) return null;
+
+    return (
+      <aside className="cms-structure-panel" aria-label="Estructura del sitio">
+        <div className="cms-structure-panel__head">
+          <div>
+            <p className="cms-eyebrow">Estructura</p>
+            <h2>{getAreaLabel(activeView, activePage)}</h2>
+          </div>
+          <button aria-label="Cerrar estructura" className="cms-structure-close" type="button" onClick={() => setStructureOpen(false)}>
+            <span aria-hidden="true" />
+          </button>
+        </div>
+        <StructureBranch blocks={activeBlocks} selectedBlockId={selectedBlockId} onSelectBlock={handleSelectBlock} />
+      </aside>
+    );
+  }
+
   return (
     <>
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
@@ -640,24 +716,38 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                 onSave={handleSave}
               />
               <div className="cms-builder-grid">
-                <Sidebar onAddBlock={handleAddBlock} />
+                {selectedBlock && builderPanel === "settings" ? (
+                  <Inspector
+                    block={selectedBlock}
+                    site={site}
+                    onBackToLibrary={() => setBuilderPanel("library")}
+                    onDeleteBlock={handleDeleteBlock}
+                    onDuplicateBlock={handleDuplicateBlock}
+                    onMoveBlock={handleMoveBlock}
+                    onUpdateBlock={handleUpdateBlock}
+                  />
+                ) : (
+                  <Sidebar insertionTargetLabel={insertionTargetLabel} onAddBlock={handleAddBlock} />
+                )}
                 <Canvas
                   areaLabel={getAreaLabel(activeView, activePage)}
                   blocks={activeBlocks}
                   selectedBlockId={selectedBlockId}
                   site={site}
                   onDropBlock={handleAddBlock}
-                  onSelectBlock={setSelectedBlockId}
-                />
-                <Inspector
-                  block={selectedBlock}
-                  site={site}
-                  onDeleteBlock={handleDeleteBlock}
-                  onDuplicateBlock={handleDuplicateBlock}
-                  onMoveBlock={handleMoveBlock}
-                  onUpdateBlock={handleUpdateBlock}
+                  onSelectBlock={handleSelectBlock}
                 />
               </div>
+              <button
+                aria-expanded={structureOpen}
+                aria-label="Mostrar estructura del sitio"
+                className="cms-structure-toggle"
+                type="button"
+                onClick={() => setStructureOpen((isOpen) => !isOpen)}
+              >
+                <span aria-hidden="true" />
+              </button>
+              {renderStructurePanel()}
             </>
           ) : (
             <>

@@ -65,7 +65,7 @@ function FieldControl({ field, value, site, onChange }) {
 }
 
 // El inspector permite editar props, mover, duplicar o borrar el bloque seleccionado.
-export function Inspector({ block, site, onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock }) {
+export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock }) {
   const definition = block ? componentMap[block.type] : null;
 
   if (!block || !definition) {
@@ -86,6 +86,10 @@ export function Inspector({ block, site, onUpdateBlock, onDeleteBlock, onDuplica
         <p className="cms-eyebrow">Inspector</p>
         <h2>{definition.label}</h2>
       </div>
+
+      <button className="cms-panel-switch" type="button" onClick={onBackToLibrary}>
+        Volver a elementos
+      </button>
 
       <div className="cms-inspector__actions">
         <button type="button" onClick={() => onMoveBlock(block.id, -1)}>
