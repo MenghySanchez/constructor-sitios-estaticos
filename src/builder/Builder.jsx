@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createId, slugify } from "../cms/siteDefaults";
 import { createBlock } from "../components-library/registry";
+import { buildStaticPage } from "../exporter/staticExporter";
 import { createAsset, createDefaultSite, createField, createForm, createPage, exportPage, loadSite, saveSite } from "../store/builderStore";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
@@ -36,6 +37,17 @@ function getActiveBlocks(site, activeView, activePage) {
   return activePage?.blocks || [];
 }
 
+// Esta funcion prepara el HTML exportado para verlo dentro de un iframe srcdoc.
+// Reemplaza archivos relativos por CSS/JS inline porque el preview no escribe archivos.
+function buildPreviewSrcDoc(site, pageId) {
+  const output = buildStaticPage(site, pageId);
+  const safeScript = output.files["script.js"].replaceAll("</script", "<\\/script");
+
+  return output.files["index.html"]
+    .replace('<link rel="stylesheet" href="./styles.css">', `<style>${output.files["styles.css"]}</style>`)
+    .replace('<script src="./script.js"></script>', `<script>${safeScript}</script>`);
+}
+
 // Builder es el componente principal: administra estado, navegacion y acciones del CMS.
 export function Builder({ project, onBackToProjects, onLogout }) {
   const [site, setSite] = useState(createDefaultSite);
@@ -44,6 +56,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const [status, setStatus] = useState("Cargando datos...");
   const [assetDraft, setAssetDraft] = useState({ name: "", url: "" });
   const [newPageTitle, setNewPageTitle] = useState("Nueva landing");
+  const [preview, setPreview] = useState({ open: false, device: "desktop", srcDoc: "" });
 
   const activePage = site.pages.find((page) => page.id === site.currentPageId) || site.pages[0];
   const activeBlocks = getActiveBlocks(site, activeView, activePage);
@@ -157,6 +170,67 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     } catch (error) {
       setStatus(error.message);
     }
+  }
+
+  // Esta funcion abre una vista previa de la landing usando el HTML final generado.
+  function handlePreview() {
+    if (!activePage) return;
+
+    setPreview({
+      open: true,
+      device: "desktop",
+      srcDoc: buildPreviewSrcDoc(site, activePage.id),
+    });
+    setStatus(`Vista previa generada para ${activePage.title}`);
+  }
+
+  // Esta funcion cierra el modal y libera el srcdoc para no conservar HTML viejo.
+  function closePreview() {
+    setPreview({ open: false, device: "desktop", srcDoc: "" });
+  }
+
+  // Esta funcion renderiza el modal de vista previa con modos desktop/mobile.
+  function renderPreviewModal() {
+    if (!preview.open) return null;
+
+    return (
+      <section className="preview-modal" aria-label="Vista previa de landing" role="dialog" aria-modal="true">
+        <div className="preview-modal__bar">
+          <div>
+            <p className="cms-eyebrow">Vista previa</p>
+            <h2>{activePage?.title}</h2>
+          </div>
+          <div className="preview-modal__actions">
+            <button
+              className={`cms-button ${preview.device === "desktop" ? "cms-button--primary" : "cms-button--secondary"}`}
+              type="button"
+              onClick={() => setPreview((currentPreview) => ({ ...currentPreview, device: "desktop" }))}
+            >
+              Desktop
+            </button>
+            <button
+              className={`cms-button ${preview.device === "mobile" ? "cms-button--primary" : "cms-button--secondary"}`}
+              type="button"
+              onClick={() => setPreview((currentPreview) => ({ ...currentPreview, device: "mobile" }))}
+            >
+              Mobile
+            </button>
+            <button className="cms-button cms-button--ghost" type="button" onClick={closePreview}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+        <div className={`preview-modal__stage preview-modal__stage--${preview.device}`}>
+          <iframe
+            className="preview-modal__frame"
+            sandbox="allow-forms allow-same-origin allow-scripts"
+            srcDoc={preview.srcDoc}
+            title={`Vista previa de ${activePage?.title || "landing"}`}
+          />
+        </div>
+      </section>
+    );
   }
 
   // Esta funcion crea una pagina nueva y la selecciona para editar.
@@ -436,6 +510,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
               onExport={handleExport}
               onLogout={onLogout}
               onOpenPages={() => setActiveView("pages")}
+              onPreview={handlePreview}
               onSave={handleSave}
             />
             <div className="cms-builder-grid">
@@ -468,12 +543,14 @@ export function Builder({ project, onBackToProjects, onLogout }) {
               onExport={handleExport}
               onLogout={onLogout}
               onOpenPages={() => setActiveView("pages")}
+              onPreview={handlePreview}
               onSave={handleSave}
             />
             {renderActiveView()}
           </>
         )}
       </section>
+      {renderPreviewModal()}
     </div>
   );
 }

@@ -88,7 +88,8 @@ Nota importante: Vercel no ofrece filesystem persistente para escribir archivos 
 9. Agrega imagenes por URL desde `Biblioteca`.
 10. Crea o edita formularios desde `Formularios`.
 11. Pulsa `Guardar` para persistir cambios.
-12. Pulsa `Publicar estatico` para generar los archivos finales.
+12. Pulsa `Vista previa` para revisar la landing en desktop o mobile antes de publicar.
+13. Pulsa `Publicar estatico` para generar los archivos finales.
 
 ## Estructura De Datos
 
@@ -156,6 +157,12 @@ npm run preview
 ```
 
 ## Notas De Version
+
+### Version 0.2.4
+
+- Agregada vista previa de landing dentro del admin.
+- El preview usa el mismo generador HTML/CSS/JS que la publicacion estatica.
+- Agregados modos de vista previa desktop y mobile.
 
 ### Version 0.2.3
 

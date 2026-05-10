@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.4 - 2026-05-10
+
+- Agregada vista previa de landing dentro del admin mediante iframe.
+- La vista previa usa `buildStaticPage`, el mismo renderizador de la exportacion estatica.
+- Agregados controles de preview para desktop y mobile.
+
+### Verificacion
+
+- `npm run lint`
+- `npm run build`
+
 ## v0.2.3 - 2026-05-10
 
 - Agregada eliminacion de proyectos desde la pantalla de proyectos.

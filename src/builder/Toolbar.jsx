@@ -1,5 +1,5 @@
 // La toolbar concentra acciones globales del editor y del proyecto activo.
-export function Toolbar({ page, project, status, onBackToProjects, onLogout, onSave, onExport, onOpenPages }) {
+export function Toolbar({ page, project, status, onBackToProjects, onLogout, onSave, onExport, onOpenPages, onPreview }) {
   return (
     <header className="cms-toolbar">
       <div>
@@ -16,6 +16,9 @@ export function Toolbar({ page, project, status, onBackToProjects, onLogout, onS
         </button>
         <button className="cms-button cms-button--secondary" type="button" onClick={onSave}>
           Guardar
+        </button>
+        <button className="cms-button cms-button--secondary" type="button" onClick={onPreview} disabled={!page}>
+          Vista previa
         </button>
         <button className="cms-button cms-button--primary" type="button" onClick={onExport} disabled={!page}>
           Publicar estatico
