@@ -118,7 +118,7 @@ function buildPreviewSrcDoc(site, pageId) {
 // Builder es el componente principal: administra estado, navegacion y acciones del CMS.
 export function Builder({ project, onBackToProjects, onLogout }) {
   const [site, setSite] = useState(createDefaultSite);
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState("builder");
   const [selectedBlockId, setSelectedBlockId] = useState("");
   const [status, setStatus] = useState("Cargando datos...");
   const [assetDraft, setAssetDraft] = useState({ name: "", url: "" });
