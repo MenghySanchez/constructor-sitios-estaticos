@@ -4,7 +4,7 @@ import { componentMap, createBlock } from "../components-library/registry";
 import { buildStaticPage } from "../exporter/staticExporter";
 import { createAsset, createDefaultSite, createField, createForm, createPage, exportPage, loadSite, saveSite } from "../store/builderStore";
 import { Canvas } from "./Canvas";
-import { Inspector } from "./Inspector";
+import { ColumnInspector, Inspector } from "./Inspector";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 
@@ -125,7 +125,7 @@ function getBlockLabel(block) {
   return componentMap[block.type]?.label || block.type;
 }
 
-function StructureBranch({ blocks, selectedBlockId, onSelectBlock }) {
+function StructureBranch({ blocks, selectedBlockId, selectedColumn, onSelectBlock, onSelectColumn }) {
   if (!blocks.length) return <p className="cms-structure-empty">Sin elementos todavia.</p>;
 
   return (
@@ -151,13 +151,26 @@ function StructureBranch({ blocks, selectedBlockId, onSelectBlock }) {
               <ol className="cms-structure-list cms-structure-list--columns">
                 {Array.from({ length: columnCount }).map((_, index) => (
                   <li key={`${block.id}-column-${index}`}>
-                    <div className="cms-structure-column"><span aria-hidden="true" />Columna {index + 1}</div>
-                    <StructureBranch blocks={columnGroups[index]} selectedBlockId={selectedBlockId} onSelectBlock={onSelectBlock} />
+                    <button
+                      aria-current={selectedColumn?.parentId === block.id && selectedColumn?.index === index ? "true" : undefined}
+                      className={`cms-structure-column ${selectedColumn?.parentId === block.id && selectedColumn?.index === index ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => onSelectColumn(block.id, index)}
+                    >
+                      <span aria-hidden="true" />Columna {index + 1}
+                    </button>
+                    <StructureBranch
+                      blocks={columnGroups[index]}
+                      selectedBlockId={selectedBlockId}
+                      selectedColumn={selectedColumn}
+                      onSelectBlock={onSelectBlock}
+                      onSelectColumn={onSelectColumn}
+                    />
                   </li>
                 ))}
               </ol>
             ) : children.length ? (
-              <StructureBranch blocks={children} selectedBlockId={selectedBlockId} onSelectBlock={onSelectBlock} />
+              <StructureBranch blocks={children} selectedBlockId={selectedBlockId} selectedColumn={selectedColumn} onSelectBlock={onSelectBlock} onSelectColumn={onSelectColumn} />
             ) : null}
           </li>
         );
@@ -204,6 +217,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const [isAdminNavCollapsed, setIsAdminNavCollapsed] = useState(false);
   const [builderPanel, setBuilderPanel] = useState("library");
   const [insertionColumn, setInsertionColumn] = useState(0);
+  const [selectedColumn, setSelectedColumn] = useState(null);
   const [structureOpen, setStructureOpen] = useState(false);
   const [editorViewport, setEditorViewport] = useState({ mode: "desktop", customWidth: "768" });
   const [preview, setPreview] = useState({ open: false, device: "desktop", srcDoc: "" });
@@ -212,10 +226,12 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const activeBlocks = getActiveBlocks(site, activeView, activePage);
   const selectedContext = findBlockContext(activeBlocks, selectedBlockId);
   const selectedBlock = findBlockById(activeBlocks, selectedBlockId);
+  const selectedColumnParent = selectedColumn ? findBlockById(activeBlocks, selectedColumn.parentId) : null;
+  const selectedColumnProps = selectedColumnParent?.props?.columnSettings?.[selectedColumn.index] || {};
   const isBuilderView = ["builder", "header", "navbar", "footer"].includes(activeView);
-  const insertionParent = parentBlockTypes.has(selectedBlock?.type) ? selectedBlock : selectedContext?.parent;
+  const insertionParent = selectedColumnParent || (parentBlockTypes.has(selectedBlock?.type) ? selectedBlock : selectedContext?.parent);
   const insertionColumnCount = getColumnCount(insertionParent);
-  const activeInsertionColumn = insertionParent ? clampColumn(insertionColumn, insertionColumnCount || 1) : 0;
+  const activeInsertionColumn = selectedColumn ? selectedColumn.index : insertionParent ? clampColumn(insertionColumn, insertionColumnCount || 1) : 0;
   const insertionTargetLabel = insertionParent ? getBlockLabel(insertionParent) : "";
   const viewportWidth = editorViewport.mode === "custom" ? Number.parseInt(editorViewport.customWidth || "768", 10) || 768 : viewportPresets[editorViewport.mode].width;
 
@@ -283,6 +299,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     const targetColumn = targetParentId ? clampColumn(column, getColumnCount(targetParent)) : 0;
     updateActiveBlocks(addBlockToParent(activeBlocks, targetParentId, block, targetColumn));
     setSelectedBlockId(block.id);
+    setSelectedColumn(null);
     setInsertionColumn(targetColumn);
     setBuilderPanel("settings");
     setStatus(targetParentId ? `Bloque agregado en columna ${targetColumn + 1}: ${type}` : `Bloque agregado: ${type}`);
@@ -291,8 +308,39 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   function handleSelectBlock(blockId) {
     const context = findBlockContext(activeBlocks, blockId);
     setSelectedBlockId(blockId);
+    setSelectedColumn(null);
     setInsertionColumn(clampColumn(context?.block?.column || 0, getColumnCount(context?.parent) || 1));
     setBuilderPanel("settings");
+  }
+
+  function handleSelectColumn(parentId, columnIndex) {
+    const parent = findBlockById(activeBlocks, parentId);
+    const safeColumn = clampColumn(columnIndex, getColumnCount(parent));
+    setSelectedBlockId("");
+    setSelectedColumn({ parentId, index: safeColumn });
+    setInsertionColumn(safeColumn);
+    setBuilderPanel("settings");
+  }
+
+  function handleUpdateColumn(parentId, columnIndex, patch) {
+    updateActiveBlocks(
+      mapBlocks(activeBlocks, (block) => {
+        if (block.id !== parentId) return block;
+        const currentSettings = block.props?.columnSettings || {};
+        const currentColumnSettings = currentSettings[columnIndex] || {};
+
+        return {
+          ...block,
+          props: {
+            ...block.props,
+            columnSettings: {
+              ...currentSettings,
+              [columnIndex]: { ...currentColumnSettings, ...patch },
+            },
+          },
+        };
+      }),
+    );
   }
 
   // Esta funcion actualiza props del bloque seleccionado desde el inspector.
@@ -304,6 +352,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   function handleDeleteBlock(blockId) {
     updateActiveBlocks(removeBlockById(activeBlocks, blockId));
     setSelectedBlockId("");
+    setSelectedColumn(null);
     setBuilderPanel("library");
   }
 
@@ -418,6 +467,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     setNewPageTitle("Nueva landing");
     setActiveView("builder");
     setSelectedBlockId("");
+    setSelectedColumn(null);
     setBuilderPanel("library");
   }
 
@@ -434,6 +484,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     setSite((currentSite) => ({ ...currentSite, currentPageId: pageId }));
     setActiveView("builder");
     setSelectedBlockId("");
+    setSelectedColumn(null);
     setBuilderPanel("library");
   }
 
@@ -700,7 +751,13 @@ export function Builder({ project, onBackToProjects, onLogout }) {
             <span aria-hidden="true" />
           </button>
         </div>
-        <StructureBranch blocks={activeBlocks} selectedBlockId={selectedBlockId} onSelectBlock={handleSelectBlock} />
+        <StructureBranch
+          blocks={activeBlocks}
+          selectedBlockId={selectedBlockId}
+          selectedColumn={selectedColumn}
+          onSelectBlock={handleSelectBlock}
+          onSelectColumn={handleSelectColumn}
+        />
       </aside>
     );
   }
@@ -796,7 +853,15 @@ export function Builder({ project, onBackToProjects, onLogout }) {
               />
               {renderViewportControls()}
               <div className="cms-builder-grid">
-                {selectedBlock && builderPanel === "settings" ? (
+                {selectedColumn && selectedColumnParent && builderPanel === "settings" ? (
+                  <ColumnInspector
+                    column={{ ...selectedColumn, props: selectedColumnProps }}
+                    parentBlock={selectedColumnParent}
+                    site={site}
+                    onBackToLibrary={() => setBuilderPanel("library")}
+                    onUpdateColumn={handleUpdateColumn}
+                  />
+                ) : selectedBlock && builderPanel === "settings" ? (
                   <Inspector
                     block={selectedBlock}
                     site={site}
@@ -820,9 +885,11 @@ export function Builder({ project, onBackToProjects, onLogout }) {
                   blocks={activeBlocks}
                   viewportWidth={viewportWidth}
                   selectedBlockId={selectedBlockId}
+                  selectedColumn={selectedColumn}
                   site={site}
                   onDropBlock={handleAddBlock}
                   onSelectBlock={handleSelectBlock}
+                  onSelectColumn={handleSelectColumn}
                 />
               </div>
               <button

@@ -18,7 +18,54 @@ function groupBlocksByColumn(blocks, columnCount) {
   return Array.from({ length: columnCount }, (_, index) => blocks.filter((block) => clampColumn(block.column || 0, columnCount) === index));
 }
 
-function RenderedBlock({ block, site, selectedBlockId, onDropBlock, onSelectBlock }) {
+function getBackgroundStyle(props = {}) {
+  if (props.backgroundType === "image" && props.backgroundImage) {
+    return `linear-gradient(oklch(0.18 0.018 74 / 0.12), oklch(0.18 0.018 74 / 0.12)), url("${props.backgroundImage}") center / cover`;
+  }
+
+  if (props.backgroundType === "gradient" && props.backgroundGradient) return props.backgroundGradient;
+
+  return props.background;
+}
+
+function toCssNumber(value) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? `${parsed}px` : undefined;
+}
+
+function toStyleName(property) {
+  if (property.startsWith("--")) return property;
+  return property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function parseCssDeclarations(value) {
+  return String(value || "")
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .reduce((style, declaration) => {
+      const separatorIndex = declaration.indexOf(":");
+      if (separatorIndex < 1) return style;
+      const property = declaration.slice(0, separatorIndex).trim();
+      const propertyValue = declaration.slice(separatorIndex + 1).trim();
+      if (!property || !propertyValue) return style;
+      return { ...style, [toStyleName(property)]: propertyValue };
+    }, {});
+}
+
+function getColumnStyle(columnProps = {}) {
+  return {
+    minHeight: toCssNumber(columnProps.minHeight),
+    padding: toCssNumber(columnProps.padding),
+    gap: toCssNumber(columnProps.gap),
+    alignContent: columnProps.alignItems,
+    justifyContent: columnProps.justifyContent,
+    background: getBackgroundStyle(columnProps),
+    ...parseCssDeclarations(columnProps.customCss),
+  };
+}
+
+function RenderedBlock({ block, site, selectedBlockId, selectedColumn, onDropBlock, onSelectBlock, onSelectColumn }) {
   const isSelected = selectedBlockId === block.id;
   const columnCount = getColumnCount(block);
   const columnGroups = groupBlocksByColumn(block.children || [], columnCount);
@@ -63,9 +110,13 @@ function RenderedBlock({ block, site, selectedBlockId, onDropBlock, onSelectBloc
         {columnCount
           ? columnGroups.map((columnBlocks, columnIndex) => (
               <div
-                className="cms-builder-column"
+                className={`cms-builder-column ${selectedColumn?.parentId === block.id && selectedColumn?.index === columnIndex ? "is-selected" : ""} ${block.props?.columnSettings?.[columnIndex]?.cssClass || ""}`}
                 key={`${block.id}-column-${columnIndex}`}
-                onClick={(event) => event.stopPropagation()}
+                style={getColumnStyle(block.props?.columnSettings?.[columnIndex])}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelectColumn(block.id, columnIndex);
+                }}
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -85,9 +136,11 @@ function RenderedBlock({ block, site, selectedBlockId, onDropBlock, onSelectBloc
                       block={childBlock}
                       key={childBlock.id}
                       selectedBlockId={selectedBlockId}
+                      selectedColumn={selectedColumn}
                       site={site}
                       onDropBlock={onDropBlock}
                       onSelectBlock={onSelectBlock}
+                      onSelectColumn={onSelectColumn}
                     />
                   ))
                 ) : (
@@ -102,7 +155,7 @@ function RenderedBlock({ block, site, selectedBlockId, onDropBlock, onSelectBloc
 }
 
 // El canvas recibe drops de la sidebar y pinta los bloques de la zona activa.
-export function Canvas({ blocks, site, viewportWidth, selectedBlockId, areaLabel, onDropBlock, onSelectBlock }) {
+export function Canvas({ blocks, site, viewportWidth, selectedBlockId, selectedColumn, areaLabel, onDropBlock, onSelectBlock, onSelectColumn }) {
   return (
     <main
       aria-label={areaLabel}
@@ -136,9 +189,11 @@ export function Canvas({ blocks, site, viewportWidth, selectedBlockId, areaLabel
               block={block}
               key={block.id}
               selectedBlockId={selectedBlockId}
+              selectedColumn={selectedColumn}
               site={site}
               onDropBlock={onDropBlock}
               onSelectBlock={onSelectBlock}
+              onSelectColumn={onSelectColumn}
             />
           ))
         )}

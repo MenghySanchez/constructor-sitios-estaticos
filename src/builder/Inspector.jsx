@@ -6,6 +6,21 @@ const advancedFields = [
   { name: "customCss", label: "CSS inline", type: "textarea" },
 ];
 
+const columnFields = [
+  { name: "width", label: "Ancho", type: "text" },
+  { name: "minHeight", label: "Alto minimo px", type: "number" },
+  { name: "padding", label: "Padding px", type: "number" },
+  { name: "gap", label: "Gap px", type: "number" },
+  { name: "alignItems", label: "Alinear vertical", type: "select", options: ["stretch", "start", "center", "end"] },
+  { name: "justifyContent", label: "Justificar contenido", type: "select", options: ["start", "center", "end", "space-between"] },
+  { name: "backgroundType", label: "Tipo de fondo", type: "select", options: ["color", "image", "gradient"] },
+  { name: "background", label: "Fondo", type: "color" },
+  { name: "backgroundImage", label: "Imagen de fondo", type: "asset" },
+  { name: "backgroundGradient", label: "Degradado CSS", type: "textarea" },
+  { name: "cssClass", label: "Clase CSS", type: "text" },
+  { name: "customCss", label: "CSS inline", type: "textarea" },
+];
+
 // Este componente pinta el control correcto segun el tipo de campo del bloque.
 function FieldControl({ field, value, site, onChange }) {
   if (field.type === "textarea") {
@@ -136,6 +151,41 @@ export function Inspector({ block, site, onBackToLibrary, onUpdateBlock, onDelet
           </label>
         ))}
         <p className="cms-muted">CSS inline acepta declaraciones como: padding: 40px; border-radius: 24px;</p>
+      </div>
+    </aside>
+  );
+}
+
+export function ColumnInspector({ column, parentBlock, site, onBackToLibrary, onUpdateColumn }) {
+  const parentDefinition = parentBlock ? componentMap[parentBlock.type] : null;
+  const columnLabel = `Columna ${column.index + 1}`;
+
+  return (
+    <aside className="cms-inspector">
+      <div className="cms-panel-heading">
+        <p className="cms-eyebrow">Inspector</p>
+        <h2>{columnLabel}</h2>
+      </div>
+
+      <button className="cms-panel-switch" type="button" onClick={onBackToLibrary}>
+        Volver a elementos
+      </button>
+
+      <p className="cms-muted">Editando columna dentro de {parentDefinition?.label || parentBlock?.type || "contenedor"}.</p>
+
+      <div className="cms-field-stack">
+        {columnFields.map((field) => (
+          <label className="cms-field" key={field.name}>
+            <span>{field.label}</span>
+            <FieldControl
+              field={field}
+              site={site}
+              value={column.props?.[field.name]}
+              onChange={(value) => onUpdateColumn(parentBlock.id, column.index, { [field.name]: value })}
+            />
+          </label>
+        ))}
+        <p className="cms-muted">Ejemplos de ancho: 1fr, 2fr, 320px, 40%.</p>
       </div>
     </aside>
   );

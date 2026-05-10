@@ -1115,7 +1115,8 @@ a:active {
 }
 
 .cms-structure-list button:hover,
-.cms-structure-list button.is-active {
+.cms-structure-list button.is-active,
+.cms-structure-column.is-active {
   border-color: var(--cms-line-soft);
   background: var(--cms-panel-2);
 }
@@ -1131,7 +1132,6 @@ a:active {
 
 .cms-structure-column {
   color: var(--cms-muted);
-  cursor: default;
 }
 
 .cms-structure-column > span {
@@ -1186,11 +1186,18 @@ a:active {
 }
 
 .cms-builder-column {
+  display: grid;
   min-height: 110px;
   padding: 12px;
+  gap: 10px;
   border: 1px dashed var(--cms-line);
   border-radius: 18px;
   background: oklch(0.985 0.007 82 / 0.52);
+}
+
+.cms-builder-column.is-selected {
+  border-color: var(--cms-accent);
+  outline: 4px solid oklch(0.72 0.145 68 / 0.16);
 }
 
 .cms-builder-column__label {

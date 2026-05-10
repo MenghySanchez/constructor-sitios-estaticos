@@ -56,11 +56,14 @@ function getBackgroundStyle(props, fallback = {}) {
 function getLayoutStyle(props, fallback = {}) {
   const layout = props.layout || fallback.layout || "grid";
   const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
+  const safeColumns = Number.isFinite(columns) ? columns : 1;
+  const columnSettings = props.columnSettings || {};
+  const columnTemplate = Array.from({ length: safeColumns }, (_, index) => columnSettings[index]?.width || "minmax(0, 1fr)").join(" ");
 
   return {
     display: layout,
     flexDirection: props.direction || fallback.direction || "column",
-    gridTemplateColumns: layout === "grid" ? `repeat(${Number.isFinite(columns) ? columns : 1}, minmax(0, 1fr))` : undefined,
+    gridTemplateColumns: layout === "grid" ? columnTemplate : undefined,
     gap: toCssNumber(props.gap, fallback.gap || 16),
     paddingBlock: toCssNumber(props.paddingBlock, fallback.paddingBlock || 32),
     paddingInline: toCssNumber(props.paddingInline, fallback.paddingInline || 24),

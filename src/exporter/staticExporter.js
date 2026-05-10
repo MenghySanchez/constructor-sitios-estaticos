@@ -44,6 +44,9 @@ function buildAttrs(props, baseClass, style = "") {
 function buildLayoutStyle(props, fallback = {}) {
   const layout = props.layout || fallback.layout || "grid";
   const columns = Number.parseInt(props.columns || fallback.columns || "1", 10);
+  const safeColumns = Number.isFinite(columns) ? columns : 1;
+  const columnSettings = props.columnSettings || {};
+  const columnTemplate = Array.from({ length: safeColumns }, (_, index) => columnSettings[index]?.width || "minmax(0, 1fr)").join(" ");
   let background = props.background || fallback.background;
 
   if (props.backgroundType === "image" && props.backgroundImage) {
@@ -61,11 +64,32 @@ function buildLayoutStyle(props, fallback = {}) {
     `padding-inline:${toCssNumber(props.paddingInline, fallback.paddingInline || 24)}`,
   ];
 
-  if (layout === "grid") styles.push(`grid-template-columns:repeat(${Number.isFinite(columns) ? columns : 1}, minmax(0, 1fr))`);
+  if (layout === "grid") styles.push(`grid-template-columns:${columnTemplate}`);
   if (layout === "flex") styles.push(`flex-direction:${props.direction || fallback.direction || "column"}`);
   if (background) styles.push(`background:${background}`);
 
   return styles.join("; ");
+}
+
+function buildColumnStyle(props = {}) {
+  let background = props.background || "";
+
+  if (props.backgroundType === "image" && props.backgroundImage) {
+    background = `linear-gradient(rgba(22, 20, 15, 0.12), rgba(22, 20, 15, 0.12)), url('${props.backgroundImage}') center / cover`;
+  }
+
+  if (props.backgroundType === "gradient" && props.backgroundGradient) {
+    background = props.backgroundGradient;
+  }
+
+  return [
+    props.minHeight ? `min-height:${toCssNumber(props.minHeight, 0)}` : "",
+    props.padding ? `padding:${toCssNumber(props.padding, 0)}` : "",
+    props.gap ? `gap:${toCssNumber(props.gap, 0)}` : "",
+    props.alignItems ? `align-content:${props.alignItems}` : "",
+    props.justifyContent ? `justify-content:${props.justifyContent}` : "",
+    background ? `background:${background}` : "",
+  ].filter(Boolean).join("; ");
 }
 
 function splitParagraphs(value) {
@@ -99,9 +123,10 @@ function clampColumn(column, columnCount) {
 function renderColumnChildren(block, site) {
   const columnCount = getColumnCount(block);
   return Array.from({ length: columnCount }, (_, index) => {
+    const columnProps = block.props?.columnSettings?.[index] || {};
     const children = (block.children || []).filter((childBlock) => clampColumn(childBlock.column || 0, columnCount) === index);
     const content = renderBlocks(children, site);
-    return `<div class="sb-layout__column">${content || `Columna ${index + 1}`}</div>`;
+    return `<div ${buildAttrs(columnProps, "sb-layout__column", buildColumnStyle(columnProps))}>${content || `Columna ${index + 1}`}</div>`;
   }).join("");
 }
 
