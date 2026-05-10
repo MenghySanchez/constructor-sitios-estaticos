@@ -19,6 +19,7 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
   const [status, setStatus] = useState("Crea o selecciona un proyecto para continuar.");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState({ open: false, projectName: "", srcDoc: "" });
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Esta funcion crea la carpeta y site.json inicial del proyecto.
   async function handleCreateProject(event) {
@@ -138,35 +139,15 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
             </button>
           </form>
 
-          <form className="project-create-card" aria-busy={loading} onSubmit={handleChangePassword}>
-            <p className="cms-eyebrow">Seguridad</p>
-            <h2>Cambiar clave</h2>
-            <label className="cms-field">
-              <span>Contrasena actual</span>
-              <input
-                type="password"
-                value={passwordDraft.currentPassword}
-                onChange={(event) => setPasswordDraft({ ...passwordDraft, currentPassword: event.target.value })}
-                autoComplete="current-password"
-                required
-              />
-            </label>
-            <label className="cms-field">
-              <span>Nueva contrasena</span>
-              <input
-                type="password"
-                value={passwordDraft.newPassword}
-                onChange={(event) => setPasswordDraft({ ...passwordDraft, newPassword: event.target.value })}
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </label>
-            <button className="cms-button cms-button--secondary" type="submit" disabled={loading}>
-              Guardar nueva clave
+          <article className="project-create-card project-settings-card">
+            <p className="cms-eyebrow">Sistema</p>
+            <h2>Configuracion</h2>
+            <p className="cms-muted">Gestiona seguridad y ajustes generales sin mezclarlo con tus proyectos.</p>
+            <button className="cms-button cms-button--secondary" type="button" onClick={() => setSettingsOpen(true)}>
+              Abrir configuracion
             </button>
-            <p className="auth-status" role="status">{status}</p>
-          </form>
+          </article>
+
           <button className="cms-button cms-button--ghost" type="button" onClick={onLogout}>
             Cerrar sesion
           </button>
@@ -233,6 +214,58 @@ export function ProjectSelector({ projects, onChangePassword, onCreateProject, o
           </div>
         </section>
       </section>
+
+      {settingsOpen ? (
+        <section className="settings-modal" aria-label="Configuracion del sistema" role="dialog" aria-modal="true">
+          <form className="settings-card" aria-busy={loading} onSubmit={handleChangePassword}>
+            <div className="settings-card__head">
+              <div>
+                <p className="cms-eyebrow">Configuracion</p>
+                <h2>Seguridad del sistema</h2>
+              </div>
+              <button className="cms-button cms-button--ghost" type="button" onClick={() => setSettingsOpen(false)}>
+                Cerrar
+              </button>
+            </div>
+
+            <p className="cms-muted">Cambia la clave del usuario local. La nueva clave debe tener al menos 8 caracteres.</p>
+
+            <label className="cms-field">
+              <span>Contrasena actual</span>
+              <input
+                type="password"
+                value={passwordDraft.currentPassword}
+                onChange={(event) => setPasswordDraft({ ...passwordDraft, currentPassword: event.target.value })}
+                autoComplete="current-password"
+                required
+              />
+            </label>
+
+            <label className="cms-field">
+              <span>Nueva contrasena</span>
+              <input
+                type="password"
+                value={passwordDraft.newPassword}
+                onChange={(event) => setPasswordDraft({ ...passwordDraft, newPassword: event.target.value })}
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </label>
+
+            <div className="settings-card__actions">
+              <button className="cms-button cms-button--primary" type="submit" disabled={loading}>
+                Guardar nueva clave
+              </button>
+              <button className="cms-button cms-button--ghost" type="button" onClick={() => setSettingsOpen(false)}>
+                Cancelar
+              </button>
+            </div>
+
+            <p className="auth-status" role="status">{status}</p>
+          </form>
+        </section>
+      ) : null}
 
       {preview.open ? (
         <section className="preview-modal" aria-label="Vista previa de proyecto" role="dialog" aria-modal="true">
