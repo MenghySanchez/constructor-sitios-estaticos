@@ -2,10 +2,23 @@ import { createDefaultSite, createId, normalizeSite, slugify } from "../cms/site
 
 // Este archivo concentra operaciones de datos para que los componentes no repitan fetch/update.
 
+// Esta funcion lee respuestas JSON de forma defensiva.
+// Si Vercel devuelve HTML o un error de routing, mostramos un mensaje entendible.
+async function readApiPayload(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  throw new Error(text ? `La API no devolvio JSON: ${text.slice(0, 120)}` : "La API no respondio correctamente");
+}
+
 // Esta funcion revisa si existe una cookie de sesion valida.
 export async function getAuthStatus() {
   const response = await fetch("/api/auth/status");
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
 
   if (!response.ok || !payload.ok) {
     throw new Error(payload.error || "No se pudo revisar la sesion");
@@ -22,7 +35,7 @@ export async function login(username, password) {
     body: JSON.stringify({ username, password }),
   });
 
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
 
   if (!response.ok || !payload.ok) {
     throw new Error(payload.error || "No se pudo iniciar sesion");
@@ -44,7 +57,7 @@ export async function changePassword(currentPassword, newPassword) {
     body: JSON.stringify({ currentPassword, newPassword }),
   });
 
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
 
   if (!response.ok || !payload.ok) {
     throw new Error(payload.error || "No se pudo cambiar la contrasena");
@@ -56,7 +69,7 @@ export async function changePassword(currentPassword, newPassword) {
 // Esta funcion carga el indice de proyectos disponibles.
 export async function loadProjects() {
   const response = await fetch("/api/projects");
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
 
   if (!response.ok || !payload.ok) {
     throw new Error(payload.error || "No se pudieron cargar los proyectos");
@@ -76,7 +89,7 @@ export async function createProject(name) {
     body: JSON.stringify({ name }),
   });
 
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
 
   if (!response.ok || !payload.ok) {
     throw new Error(payload.error || "No se pudo crear el proyecto");
@@ -93,7 +106,7 @@ export async function loadSite(projectId) {
     throw new Error("No se pudo cargar el sitio");
   }
 
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
   return normalizeSite(payload.site);
 }
 
@@ -109,7 +122,7 @@ export async function saveSite(projectId, site) {
     throw new Error("No se pudo guardar el sitio");
   }
 
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
   return normalizeSite(payload.site);
 }
 
@@ -121,7 +134,7 @@ export async function exportPage(projectId, site, pageId) {
     body: JSON.stringify({ projectId, site, pageId }),
   });
 
-  const payload = await response.json();
+  const payload = await readApiPayload(response);
 
   if (!response.ok || !payload.ok) {
     throw new Error(payload.error || "No se pudo exportar la pagina");

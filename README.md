@@ -157,6 +157,12 @@ npm run preview
 
 ## Notas De Version
 
+### Version 0.2.2
+
+- Reemplazado el catch-all de Vercel por API Routes explicitas para auth, proyectos, site y export.
+- Mejorado el cliente para detectar respuestas no JSON y mostrar errores mas claros.
+- Corregido el flujo de login en despliegues donde Vercel no resolvia correctamente `api/[...path].js`.
+
 ### Version 0.2.1
 
 - Agregadas API Routes para que el login funcione en Vercel.

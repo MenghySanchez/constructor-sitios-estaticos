@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.2 - 2026-05-10
+
+- Reemplazado `api/[...path].js` por endpoints explicitos para evitar errores de routing en Vercel.
+- Agregada libreria compartida `api/_lib/cmsApi.js` para auth, sesiones, proyectos y exportacion.
+- Mejorado el cliente para reportar cuando una API devuelve HTML o una respuesta no JSON.
+
+### Verificacion
+
+- `npm run lint`
+- `npm run build`
+- Prueba directa de endpoints `auth/login`, `auth/status` y `projects`.
+
 ## v0.2.1 - 2026-05-10
 
 - Corregido el login en Vercel agregando API Routes reales en `api/[...path].js`.
