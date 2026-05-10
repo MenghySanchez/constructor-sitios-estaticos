@@ -55,6 +55,26 @@ Despues de entrar, puedes cambiar la contrasena desde la pantalla de proyectos. 
 cms-data/auth.json
 ```
 
+## Uso En Vercel
+
+En produccion con Vercel, el admin usa API Routes dentro de la carpeta `api/`. Esto es necesario porque el middleware de `vite.config.js` solo funciona en desarrollo local con `npm run dev`.
+
+Variables recomendadas en Vercel:
+
+```txt
+SB_ADMIN_USERNAME=admin
+SB_ADMIN_PASSWORD=tu-password-seguro
+SB_SESSION_SECRET=un-secreto-largo-y-aleatorio
+```
+
+Tambien puedes usar un hash PBKDF2 en vez de password plano:
+
+```txt
+SB_ADMIN_PASSWORD_HASH=pbkdf2_sha256$310000$...
+```
+
+Nota importante: Vercel no ofrece filesystem persistente para escribir archivos del CMS. Los datos creados desde Vercel se guardan temporalmente en `/tmp` y pueden perderse cuando la funcion serverless se reinicia. Para guardar proyectos y generar archivos finales estables, usa el proyecto localmente con `npm run dev` o conecta una capa persistente externa como Vercel KV, Blob, S3 o una base de datos.
+
 ## Uso Del Proyecto
 
 1. Inicia sesion con el usuario admin.
@@ -136,6 +156,12 @@ npm run preview
 ```
 
 ## Notas De Version
+
+### Version 0.2.1
+
+- Agregadas API Routes para que el login funcione en Vercel.
+- Agregado soporte para `SB_ADMIN_USERNAME`, `SB_ADMIN_PASSWORD`, `SB_ADMIN_PASSWORD_HASH` y `SB_SESSION_SECRET` en Vercel.
+- Agregada documentacion de variables de entorno y limitaciones de filesystem en Vercel.
 
 ### Version 0.2.0
 
