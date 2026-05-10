@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pagina piloto generada por el CMS.">
+    <title>Landing principal</title>
+    <link rel="stylesheet" href="./styles.css">
+    <!-- Pega aqui Meta Pixel, Google Analytics u otros scripts -->
+  </head>
+  <body id="top">
+    <main class="sb-page">
+
+      <nav class="sb-navbar">
+        <a class="sb-navbar__brand" href="#top">LaunchForge</a>
+        <div class="sb-navbar__links"><a href="#servicios">Servicios</a><a href="#casos">Casos</a><a href="#contacto">Contacto</a></div>
+        <a class="sb-button sb-button--small" href="#contacto">Agendar demo</a>
+      </nav>
+
+
+      <section class="sb-hero" style="--accent:#f6c453">
+        <div class="sb-hero__copy">
+          <p class="sb-kicker">CMS estatico</p>
+          <h1>Construye landings como Elementor y publicalas como archivos estaticos</h1>
+          <p>Admin visual, bloques arrastrables, formularios con HTMX y exportacion lista para subir al servidor.</p>
+          <a class="sb-button sb-button--primary" href="#contacto">Crear mi pagina</a>
+        </div>
+        <figure class="sb-hero__media">
+          <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Construye landings como Elementor y publicalas como archivos estaticos" loading="lazy">
+        </figure>
+      </section>
+
+      <section class="sb-features">
+        <h2>Todo lo necesario para el piloto</h2>
+        <div class="sb-features__grid"><article><span></span><h3>Drag and drop visual</h3></article><article><span></span><h3>Head para tracking pixels</h3></article><article><span></span><h3>Biblioteca de medios</h3></article><article><span></span><h3>Formularios HTMX</h3></article></div>
+      </section>
+
+      <section class="sb-form-section" id="contacto">
+        <div>
+          <p class="sb-kicker">Formulario HTMX</p>
+          <h2>Captura leads desde el dia uno</h2>
+          <p>Conecta este formulario a tu endpoint cuando tengas backend.</p>
+        </div>
+        <form class="sb-form" hx-post="/api/leads" hx-target=".sb-form__message" hx-swap="innerHTML">
+
+          <label>
+            <span>Nombre</span>
+            <input type="text" name="name" placeholder="Tu nombre" required>
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" name="email" placeholder="tu@email.com" required>
+          </label>
+          <button class="sb-button sb-button--primary" type="submit">Enviar solicitud</button>
+          <p class="sb-form__message" aria-live="polite">Gracias. Te contactaremos pronto.</p>
+        </form>
+      </section>
+
+      <footer class="sb-footer">
+        <div>
+          <h2>LaunchForge</h2>
+          <p>Landing pages rapidas, editables y listas para publicar.</p>
+        </div>
+        <div class="sb-footer__links"><a href="#privacidad">Privacidad</a><a href="#terminos">Terminos</a><a href="#contacto">Contacto</a></div>
+      </footer>
+    </main>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>

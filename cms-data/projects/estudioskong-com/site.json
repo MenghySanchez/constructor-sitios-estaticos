@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "siteName": "estudioskong.com",
+    "trackingHead": "<!-- Pega aqui Meta Pixel, Google Analytics u otros scripts -->",
+    "globalCss": "",
+    "globalJs": ""
+  },
+  "assets": [
+    {
+      "id": "asset-zs12g2l",
+      "name": "Dashboard editorial",
+      "type": "image",
+      "url": "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      "id": "asset-qztolls",
+      "name": "Equipo creativo",
+      "type": "image",
+      "url": "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80"
+    }
+  ],
+  "forms": [
+    {
+      "id": "form-jm8wvcp",
+      "name": "Formulario de contacto",
+      "submitLabel": "Enviar solicitud",
+      "hxPost": "/api/leads",
+      "successMessage": "Gracias. Te contactaremos pronto.",
+      "fields": [
+        {
+          "id": "field-umcnuvl",
+          "label": "Nombre",
+          "name": "name",
+          "type": "text",
+          "placeholder": "Tu nombre",
+          "required": true
+        },
+        {
+          "id": "field-44qhvdq",
+          "label": "Email",
+          "name": "email",
+          "type": "email",
+          "placeholder": "tu@email.com",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "shared": {
+    "headerBlocks": [],
+    "navbarBlocks": [
+      {
+        "id": "block-p5rieyh",
+        "type": "navbar",
+        "props": {
+          "brand": "LaunchForge",
+          "links": "Servicios, Casos, Contacto",
+          "ctaLabel": "Agendar demo",
+          "ctaUrl": "#contacto"
+        }
+      }
+    ],
+    "footerBlocks": [
+      {
+        "id": "block-asocbea",
+        "type": "footer",
+        "props": {
+          "title": "LaunchForge",
+          "text": "Landing pages rapidas, editables y listas para publicar.",
+          "links": "Privacidad, Terminos, Contacto"
+        }
+      }
+    ]
+  },
+  "pages": [
+    {
+      "id": "page-1e1jq2p",
+      "title": "Landing principal",
+      "slug": "landing-principal",
+      "description": "Pagina piloto generada por el CMS.",
+      "status": "draft",
+      "blocks": [
+        {
+          "id": "block-v2emfli",
+          "type": "hero",
+          "props": {
+            "eyebrow": "CMS estatico",
+            "title": "Construye landings como Elementor y publicalas como archivos estaticos",
+            "subtitle": "Admin visual, bloques arrastrables, formularios con HTMX y exportacion lista para subir al servidor.",
+            "buttonLabel": "Crear mi pagina",
+            "buttonUrl": "#contacto",
+            "imageUrl": "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80",
+            "accent": "#f6c453"
+          }
+        },
+        {
+          "id": "block-9inznez",
+          "type": "features",
+          "props": {
+            "title": "Todo lo necesario para el piloto",
+            "items": "Drag and drop visual|Head para tracking pixels|Biblioteca de medios|Formularios HTMX"
+          }
+        },
+        {
+          "id": "block-edifgg0",
+          "type": "form",
+          "props": {
+            "title": "Captura leads desde el dia uno",
+            "text": "Conecta este formulario a tu endpoint cuando tengas backend.",
+            "formId": "form-jm8wvcp"
+          }
+        }
+      ]
+    }
+  ],
+  "currentPageId": "page-1e1jq2p"
+}
