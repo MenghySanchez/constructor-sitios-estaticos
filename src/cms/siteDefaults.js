@@ -6,6 +6,40 @@ export function createId(prefix = "item") {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+export function createDefaultDesignTokens() {
+  return {
+    colors: {
+      ink: "#16140f",
+      paper: "#fbf6eb",
+      muted: "#70695d",
+      line: "rgba(22, 20, 15, 0.16)",
+      brand: "#f6c453",
+    },
+    typography: {
+      headingFont: "Georgia, 'Times New Roman', serif",
+      bodyFont: "Georgia, 'Times New Roman', serif",
+      baseSize: "18",
+      smallSize: "14",
+      h1Size: "104",
+      h2Size: "70",
+      h3Size: "44",
+      lineHeight: "1.7",
+    },
+    radius: {
+      sm: "14",
+      md: "22",
+      lg: "32",
+      pill: "999",
+    },
+    screens: {
+      desktop: "1200",
+      laptop: "1024",
+      mobile: "390",
+      custom: "768",
+    },
+  };
+}
+
 // Este bloque crea una landing inicial para que el piloto no arranque vacio.
 export function createDefaultSite() {
   const contactFormId = createId("form");
@@ -21,6 +55,7 @@ export function createDefaultSite() {
       trackingHead: "<!-- Pega aqui Meta Pixel, Google Analytics u otros scripts -->",
       globalCss: "",
       globalJs: "",
+      designTokens: createDefaultDesignTokens(),
     },
 
     // Biblioteca inicial de archivos. En este piloto son URLs externas.
@@ -158,6 +193,26 @@ export function normalizeSite(site) {
     settings: {
       ...fallback.settings,
       ...(safeSite.settings || {}),
+      designTokens: {
+        ...fallback.settings.designTokens,
+        ...(safeSite.settings?.designTokens || {}),
+        colors: {
+          ...fallback.settings.designTokens.colors,
+          ...(safeSite.settings?.designTokens?.colors || {}),
+        },
+        typography: {
+          ...fallback.settings.designTokens.typography,
+          ...(safeSite.settings?.designTokens?.typography || {}),
+        },
+        radius: {
+          ...fallback.settings.designTokens.radius,
+          ...(safeSite.settings?.designTokens?.radius || {}),
+        },
+        screens: {
+          ...fallback.settings.designTokens.screens,
+          ...(safeSite.settings?.designTokens?.screens || {}),
+        },
+      },
     },
     shared: {
       ...fallback.shared,

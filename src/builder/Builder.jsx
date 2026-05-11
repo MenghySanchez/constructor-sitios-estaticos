@@ -17,6 +17,7 @@ const adminViews = [
   { id: "navbar", label: "Navbar", short: "N" },
   { id: "footer", label: "Footer", short: "F" },
   { id: "head", label: "Head / Tracking", short: "HT" },
+  { id: "design", label: "Diseno", short: "DS" },
   { id: "media", label: "Biblioteca", short: "M" },
   { id: "forms", label: "Formularios", short: "Fo" },
 ];
@@ -28,6 +29,7 @@ const viewportPresets = {
   mobile: { label: "Mobile", width: 390 },
   custom: { label: "Custom", width: 768 },
 };
+const viewportPresetOrder = ["desktop", "laptop", "mobile", "custom"];
 
 const responsiveFieldNames = new Set([
   "layout",
@@ -95,6 +97,43 @@ function splitResponsivePatch(patch) {
     },
     { base: {}, responsive: {} },
   );
+}
+
+function toScreenWidth(value, fallback = 768) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function createScreenKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function formatScreenLabel(name) {
+  if (viewportPresets[name]) return viewportPresets[name].label;
+
+  return String(name || "")
+    .split("-")
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function buildViewportPresets(screenTokens = {}) {
+  const knownEntries = viewportPresetOrder.map((mode) => {
+    const preset = viewportPresets[mode];
+    return [mode, { ...preset, width: toScreenWidth(screenTokens[mode], preset.width) }];
+  });
+  const customEntries = Object.entries(screenTokens)
+    .filter(([mode]) => !viewportPresets[mode])
+    .map(([mode, width]) => [mode, { label: formatScreenLabel(mode), width: toScreenWidth(width) }]);
+
+  return Object.fromEntries([...knownEntries, ...customEntries]);
 }
 
 function mapBlocks(blocks, mapper) {
@@ -252,10 +291,13 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [structureOpen, setStructureOpen] = useState(false);
   const [editorViewport, setEditorViewport] = useState({ mode: "desktop", customWidth: "768" });
+  const [screenDraft, setScreenDraft] = useState({ name: "Tablet", width: "820" });
   const [preview, setPreview] = useState({ open: false, device: "desktop", srcDoc: "" });
 
   const activePage = site.pages.find((page) => page.id === site.currentPageId) || site.pages[0];
   const activeBlocks = getActiveBlocks(site, activeView, activePage);
+  const screenTokens = site.settings.designTokens?.screens || {};
+  const configuredViewportPresets = buildViewportPresets(screenTokens);
   const selectedContext = findBlockContext(activeBlocks, selectedBlockId);
   const selectedBlock = findBlockById(activeBlocks, selectedBlockId);
   const selectedColumnParent = selectedColumn ? findBlockById(activeBlocks, selectedColumn.parentId) : null;
@@ -265,7 +307,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
   const insertionColumnCount = getColumnCount(insertionParent);
   const activeInsertionColumn = selectedColumn ? selectedColumn.index : insertionParent ? clampColumn(insertionColumn, insertionColumnCount || 1) : 0;
   const insertionTargetLabel = insertionParent ? getBlockLabel(insertionParent) : "";
-  const viewportWidth = editorViewport.mode === "custom" ? Number.parseInt(editorViewport.customWidth || "768", 10) || 768 : viewportPresets[editorViewport.mode].width;
+  const viewportWidth = editorViewport.mode === "custom" ? toScreenWidth(editorViewport.customWidth || screenTokens.custom, 768) : configuredViewportPresets[editorViewport.mode]?.width || 1200;
 
   // Al montar el admin, se carga el site.json del proyecto seleccionado.
   useEffect(() => {
@@ -577,6 +619,53 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     setSite((currentSite) => ({ ...currentSite, settings: { ...currentSite.settings, ...patch } }));
   }
 
+  function updateDesignToken(group, name, value) {
+    setSite((currentSite) => ({
+      ...currentSite,
+      settings: {
+        ...currentSite.settings,
+        designTokens: {
+          ...currentSite.settings.designTokens,
+          [group]: {
+            ...currentSite.settings.designTokens[group],
+            [name]: value,
+          },
+        },
+      },
+    }));
+
+    if (group === "screens" && name === "custom") {
+      setEditorViewport((currentViewport) => ({ ...currentViewport, customWidth: value }));
+    }
+  }
+
+  function handleCreateScreenToken(event) {
+    event.preventDefault();
+
+    const key = createScreenKey(screenDraft.name);
+    const width = Number.parseInt(screenDraft.width, 10);
+
+    if (!key) {
+      setStatus("Escribe un nombre para la nueva medida de pantalla.");
+      return;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(screenTokens, key)) {
+      setStatus(`La medida ${key} ya existe.`);
+      return;
+    }
+
+    if (!Number.isFinite(width) || width < 320) {
+      setStatus("La medida debe ser de al menos 320px.");
+      return;
+    }
+
+    updateDesignToken("screens", key, String(width));
+    setEditorViewport((currentViewport) => ({ ...currentViewport, mode: key }));
+    setScreenDraft({ name: "", width: "" });
+    setStatus(`Medida ${formatScreenLabel(key)} agregada al builder.`);
+  }
+
   // Esta funcion actualiza un formulario reutilizable.
   function updateForm(formId, patch) {
     setSite((currentSite) => ({
@@ -686,6 +775,80 @@ export function Builder({ project, onBackToProjects, onLogout }) {
           <span>JS global exportado</span>
           <textarea value={site.settings.globalJs} onChange={(event) => updateSettings({ globalJs: event.target.value })} rows={8} />
         </label>
+      </section>
+    );
+  }
+
+  function renderDesignSettings() {
+    const tokens = site.settings.designTokens;
+
+    return (
+      <section className="cms-content cms-token-settings">
+        <div className="cms-section-title">
+          <div>
+            <p className="cms-eyebrow">Variables globales</p>
+            <h2>Diseno del sitio</h2>
+          </div>
+          <p className="cms-muted">Estos tokens pertenecen solo a este proyecto y se exportan como variables CSS.</p>
+        </div>
+
+        <div className="cms-token-grid">
+          <article className="cms-token-panel">
+            <h3>Colores</h3>
+            {Object.entries(tokens.colors).map(([name, value]) => (
+              <label className="cms-field" key={name}>
+                <span>{name}</span>
+                <input value={value} onChange={(event) => updateDesignToken("colors", name, event.target.value)} />
+              </label>
+            ))}
+          </article>
+
+          <article className="cms-token-panel">
+            <h3>Tipografias y texto</h3>
+            {Object.entries(tokens.typography).map(([name, value]) => (
+              <label className="cms-field" key={name}>
+                <span>{name}</span>
+                <input value={value} onChange={(event) => updateDesignToken("typography", name, event.target.value)} />
+              </label>
+            ))}
+          </article>
+
+          <article className="cms-token-panel">
+            <h3>Radio de bordes</h3>
+            {Object.entries(tokens.radius).map(([name, value]) => (
+              <label className="cms-field" key={name}>
+                <span>{name}</span>
+                <input type="number" min="0" value={value} onChange={(event) => updateDesignToken("radius", name, event.target.value)} />
+              </label>
+            ))}
+          </article>
+
+          <article className="cms-token-panel">
+            <div className="cms-token-panel__head">
+              <div>
+                <h3>Tamanos de pantalla</h3>
+                <p>Se muestran en la barra de vistas del builder y exportan sus reglas responsive.</p>
+              </div>
+            </div>
+            {Object.entries(tokens.screens).map(([name, value]) => (
+              <label className="cms-field" key={name}>
+                <span>{name}</span>
+                <input type="number" min="320" value={value} onChange={(event) => updateDesignToken("screens", name, event.target.value)} />
+              </label>
+            ))}
+            <form className="cms-screen-form" onSubmit={handleCreateScreenToken}>
+              <label className="cms-compact-field">
+                <span>Nueva medida</span>
+                <input placeholder="Tablet horizontal" value={screenDraft.name} onChange={(event) => setScreenDraft({ ...screenDraft, name: event.target.value })} />
+              </label>
+              <label className="cms-compact-field">
+                <span>Ancho max px</span>
+                <input type="number" min="320" placeholder="820" value={screenDraft.width} onChange={(event) => setScreenDraft({ ...screenDraft, width: event.target.value })} />
+              </label>
+              <button className="cms-button cms-button--primary" type="submit">Agregar medida</button>
+            </form>
+          </article>
+        </div>
       </section>
     );
   }
@@ -805,6 +968,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
     if (activeView === "dashboard") return renderDashboard();
     if (activeView === "pages") return renderPages();
     if (activeView === "head") return renderHeadSettings();
+    if (activeView === "design") return renderDesignSettings();
     if (activeView === "media") return renderMedia();
     if (activeView === "forms") return renderForms();
     return null;
@@ -843,7 +1007,7 @@ export function Builder({ project, onBackToProjects, onLogout }) {
           <strong>{viewportWidth}px</strong>
         </div>
         <div className="cms-viewport-actions">
-          {Object.entries(viewportPresets).map(([mode, preset]) => (
+          {Object.entries(configuredViewportPresets).map(([mode, preset]) => (
             <button
               aria-pressed={editorViewport.mode === mode}
               className={editorViewport.mode === mode ? "is-active" : ""}

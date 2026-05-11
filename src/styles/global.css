@@ -1399,6 +1399,59 @@ a:active {
   gap: 18px;
 }
 
+.cms-token-settings {
+  display: grid;
+  gap: 18px;
+}
+
+.cms-token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.cms-token-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--cms-line-soft);
+  border-radius: 24px;
+  background: var(--cms-panel-2);
+}
+
+.cms-token-panel h3 {
+  margin: 0;
+  color: var(--cms-ink);
+  font-size: var(--cms-text-lg);
+  letter-spacing: -0.02em;
+}
+
+.cms-token-panel__head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.cms-token-panel__head p {
+  margin: 6px 0 0;
+  color: var(--cms-muted);
+  font-size: var(--cms-text-sm);
+}
+
+.cms-screen-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cms-line-soft);
+}
+
+.cms-screen-form .cms-button {
+  width: 100%;
+  min-height: 44px;
+}
+
 .cms-hero-card {
   padding: clamp(28px, 5vw, 56px);
   border: 1px solid var(--cms-line-soft);
